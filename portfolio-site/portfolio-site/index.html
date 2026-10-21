@@ -99,10 +99,26 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 @media (prefers-reduced-motion:reduce){.stc>div>div:first-child{animation:none}}
 .nv>a.nvc{background:#F5B544;color:#101418;font-weight:600}
 .nv>a.nvc:hover,.nv>a.nvc:focus-visible{background:#FFD58A;color:#101418}
-.svp{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.14);font-size:15px;color:#B4BAC1;text-decoration:none}
-.svp b{color:#F5B544}
-.svp:hover{color:#FFE2A8}
-.svp::after{content:" \2192";color:#F5B544}
+.svg:has(.svd[open]){align-items:start}
+.svd{margin-top:auto;border-top:1px solid rgba(255,255,255,.14)}
+.svd>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;cursor:pointer;margin:0 -10px;padding:14px 10px 4px;border-radius:12px;font-size:15px;line-height:1.45;color:#B4BAC1;transition:background .25s,color .25s}
+.svd>summary::-webkit-details-marker{display:none}
+.svd>summary b{color:#F5B544}
+.svd>summary:hover{color:#FFE2A8;background:rgba(255,255,255,.05)}
+.svd>summary:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}
+.svd>summary .chev{width:9px;height:9px;border-width:0 2px 2px 0;margin-top:-4px}
+.svd[open]>summary .chev{margin-top:4px;transform:rotate(-135deg)}
+.svx{margin-top:12px;display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:14px;border:1px solid rgba(245,181,68,.45);background:linear-gradient(180deg,rgba(245,181,68,.14),rgba(245,181,68,.03));box-shadow:0 0 24px rgba(245,181,68,.18);transform-origin:top;animation:rc .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rc{from{clip-path:inset(0 0 100% 0);opacity:.4}to{clip-path:inset(0 0 0 0);opacity:1}}
+.svx .lb{font-size:12px !important;color:#F5B544 !important;letter-spacing:.08em}
+.svs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.svs div{padding:10px;border-radius:10px;background:rgba(0,0,0,.25);font-size:12px;line-height:1.35;color:#B4BAC1}
+.svs b{display:block;font-size:20px;color:#FFD58A}
+.svx ul{margin:0;padding-left:18px;font-size:14px;line-height:1.5;color:#D6DADF;display:flex;flex-direction:column;gap:6px}
+.svx ul li::marker{color:#F5B544}
+.svx img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid rgba(255,255,255,.16)}
+.svx a{font-size:14px;font-weight:600;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.svx{animation:none}.svd>summary{transition:none}}
 .jr{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;counter-reset:none}
 .jr li{position:relative;display:flex;flex-direction:column;gap:8px;padding:22px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
 .jr b{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#F5B544}
@@ -186,30 +202,30 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 <h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; max-width: 820px">Four ways I help a growing business</h2>
 <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #B4BAC1; max-width: 760px">Each one is backed by real work further down this page. Pick the ones you need when you <a href="#start">plan your project</a>.</p>
 </div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px">
+<div class="svg" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px">
 <div class="pj">
 <div class="lb">FUNNELS · CONVERSION</div>
 <h3 style="margin: 0; font-size: 22px; font-weight: 600">Sales funnels that convert</h3>
 <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">One clear offer, an info-first checkout that captures every lead, a one-click upsell, and a clean delivery page.</p>
-<a class="svp" href="#casestudy"><b>337.5%</b> more conversions from link in bio</a>
+<details class="svd"><summary><span><b>337.5%</b> more conversions from link in bio</span><span class="chev" aria-hidden="true"></span></summary><div class="svx"><div class="lb">THE RESULTS BEHIND IT</div><div class="svs"><div><b>0.8%</b>Link-in-bio CTR before</div><div><b>+337.5%</b>Conversions after the funnel</div></div><ul><li>One product, one story, one button on the landing page</li><li>Info-first checkout: every checkout start becomes a captured lead</li><li>One-click $13 add-on after a $27 purchase, no second checkout</li><li>Delivery page that routes each buyer to the right access link</li></ul><img src="images/img-ff4c197b.webp" alt="The real landing page from the funnel build" loading="lazy"><a href="#casestudy">Walk through the full funnel &#8595;</a></div></details>
 </div>
 <div class="pj">
 <div class="lb">CRM · AUTOMATION</div>
 <h3 style="margin: 0; font-size: 22px; font-weight: 600">Follow-up that runs itself</h3>
 <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">GoHighLevel workflows that score leads, nurture them by what they click, and route each one to the right person.</p>
-<a class="svp" href="#projects"><b>Scored, nurtured and routed</b> without manual work</a>
+<details class="svd"><summary><span><b>Scored, nurtured and routed</b> without manual work</span><span class="chev" aria-hidden="true"></span></summary><div class="svx"><div class="lb">THE RESULTS BEHIND IT</div><div class="svs"><div><b>12</b>Survey questions scored in two frameworks</div><div><b>&lt;9 / &gt;20</b>Score thresholds that trigger each email</div></div><ul><li>Questions 1 to 6 earn 1 point each, questions 7 to 12 earn 10, so serious buyers stand out</li><li>Contacts move into different nurture paths based on what they click and do not click</li><li>UTM parameters assign every lead to the right agent, ending ownership disputes</li><li>Sending is throttled to protect deliverability</li></ul><a href="#projects">See the full automation &#8595;</a></div></details>
 </div>
 <div class="pj">
 <div class="lb">CUSTOM CODE · INTEGRATIONS</div>
 <h3 style="margin: 0; font-size: 22px; font-weight: 600">Features your platform lacks</h3>
 <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">Scripts, hidden fields, APIs and AI automations that fill the gaps your tools leave, with the trade-offs explained up front.</p>
-<a class="svp" href="#code"><b>Sequential IDs</b> GoHighLevel did not offer</a>
+<details class="svd"><summary><span><b>Sequential IDs</b> GoHighLevel did not offer</span><span class="chev" aria-hidden="true"></span></summary><div class="svx"><div class="lb">THE RESULTS BEHIND IT</div><div class="svs"><div><b>100000</b>First Respondent ID, counting up</div><div><b>0</b>Platform settings needed, just a script</div></div><ul><li>A short script fills a hidden field on every submission</li><li>The number shows up in the admin view under Respondent ID</li><li>Trade-off stated up front: numbering is per device unless moved server side</li></ul><img src="images/img-abc6259a.webp" alt="Admin view of a real submission showing Respondent ID 100016" loading="lazy"><a href="#code">Try the live demo &#8595;</a></div></details>
 </div>
 <div class="pj">
 <div class="lb">SUPPORT · SYSTEMS</div>
 <h3 style="margin: 0; font-size: 22px; font-weight: 600">Support your customers trust</h3>
 <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">Help desk setup, triage and training across Zendesk, Intercom and Slack, plus walkthrough videos that boost product adoption.</p>
-<a class="svp" href="#experience"><b>97%+ CSAT</b> held for 12 months</a>
+<details class="svd"><summary><span><b>97%+ CSAT</b> held for 12 months</span><span class="chev" aria-hidden="true"></span></summary><div class="svx"><div class="lb">THE RESULTS BEHIND IT</div><div class="svs"><div><b>97%+</b>Customer satisfaction</div><div><b>12</b>Consecutive months, no supervision</div></div><ul><li>Daily support across Zendesk, Intercom, Slack, Facebook Groups and webinars</li><li>High ticket volume triaged without supervision</li><li>Live training calls for real-time setup and troubleshooting</li><li>Instructional videos that boosted product adoption and customer lifetime value</li></ul><a href="#experience">See the experience &#8595;</a></div></details>
 </div>
 </div>
 </div>
