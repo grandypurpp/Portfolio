@@ -97,6 +97,58 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 .stc>div>div:first-child{animation:gl 3s ease-in-out infinite}
 @keyframes gl{0%,100%{text-shadow:0 0 0 rgba(245,181,68,0)}50%{text-shadow:0 0 14px rgba(245,181,68,.65),0 0 30px rgba(245,181,68,.3)}}
 @media (prefers-reduced-motion:reduce){.stc>div>div:first-child{animation:none}}
+.nv>a.nvc{background:#F5B544;color:#101418;font-weight:600}
+.nv>a.nvc:hover,.nv>a.nvc:focus-visible{background:#FFD58A;color:#101418}
+.svp{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.14);font-size:15px;color:#B4BAC1;text-decoration:none}
+.svp b{color:#F5B544}
+.svp:hover{color:#FFE2A8}
+.svp::after{content:" \2192";color:#F5B544}
+.jr{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;counter-reset:none}
+.jr li{position:relative;display:flex;flex-direction:column;gap:8px;padding:22px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+.jr b{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#F5B544}
+.jr h3{margin:0;font-size:19px;font-weight:600}
+.jr p{margin:0;font-size:15px;line-height:1.55;color:#B4BAC1}
+.pr{font-size:24px;font-weight:700;color:#F5B544}
+.pm{border-radius:20px}
+.pm [hidden]{display:none !important}
+.pmf{display:flex;flex-direction:column;gap:28px}
+.pmf fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pmf legend{padding:0;margin-bottom:14px}
+.pmo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:10px}
+.pmo label{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid rgba(255,255,255,.18);border-radius:14px;background:rgba(255,255,255,.05);cursor:pointer;font-size:15px;line-height:1.45;color:#C4C9CF}
+.pmo label b{display:block;color:#ECEEF0;font-size:16px}
+.pmo label:has(input:checked){border-color:#F5B544;background:rgba(245,181,68,.12);box-shadow:0 0 18px rgba(245,181,68,.25)}
+.pmo input,.pmc input{accent-color:#F5B544;width:18px;height:18px;margin:2px 0 0;flex:none}
+.pmg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:14px}
+.pmg label,.pmf fieldset>label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:#B4BAC1}
+.pmf input:not([type=checkbox]),.pmf select,.pmf textarea{font:inherit;font-size:16px;color:#ECEEF0;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 12px;box-sizing:border-box;width:100%}
+.pmf select option{background:#181D23}
+.pmf input:focus-visible,.pmf select:focus-visible,.pmf textarea:focus-visible,.pmo label:has(input:focus-visible),.pmc label:has(input:focus-visible){outline:2px solid #FFFFFF;outline-offset:2px}
+.pme{margin:0;color:#FFB4A8;font-size:15px}
+.pme:empty{display:none}
+.pmb{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.07);color:#ECEEF0;font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
+.pmb:hover{background:rgba(255,255,255,.14);color:#FFE2A8}
+.pmb:focus-visible{outline:2px solid #FFFFFF;outline-offset:2px}
+.pmp{background:#F5B544;border-color:#F5B544;color:#101418;align-self:flex-start}
+.pmp:hover{background:#FFD58A;color:#101418}
+.pmh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:22px}
+.pmk{display:flex;align-items:center;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:#FFD58A}
+.pmbar{width:180px;height:10px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}
+.pmbar span{display:block;height:100%;width:0;background:#F5B544;transition:width .3s}
+.pmc{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:14px}
+.pmc section{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(0,0,0,.18)}
+.pmc section.now{border-color:#F5B544;box-shadow:0 0 22px rgba(245,181,68,.2)}
+.pmc h3{margin:0;display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:600}
+.pmc h3 small{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#B4BAC1}
+.pmc section.now h3 small{color:#F5B544}
+.pmc label{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#D6DADF;cursor:pointer}
+.pmc label:has(input:checked) span{color:#8F969E;text-decoration:line-through}
+.pmc em{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#101418;background:#B4BAC1;vertical-align:1px}
+.pmc em.you{background:#F5B544}
+.pma{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:22px}
+.pma .pmp{align-self:auto}
+.pmt{font-size:14px;color:#FFD58A}
+@media (prefers-reduced-motion:reduce){.pmbar span{transition:none}}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;display=swap" rel="stylesheet">
 </head>
@@ -112,7 +164,7 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
 <div class="nm">CHADWICK LUNDGREN</div>
 <div class="nv" style="display: flex; flex-wrap: wrap; gap: 24px; font-size: 15px">
-<a href="#casestudy">Case study</a><a href="#code">Custom code</a><a href="#projects">Projects</a><a href="#experience">Experience</a><a href="#tools">Tools</a><a href="#contact">Contact</a>
+<a href="#services">Services</a><a href="#casestudy">Case study</a><a href="#code">Custom code</a><a href="#projects">Projects</a><a href="#process">Process</a><a href="#experience">Experience</a><a href="#contact">Contact</a><a class="nvc" href="#start">Start a project</a>
 </div>
 </div>
 
@@ -120,10 +172,45 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 <div class="lb">REMOTE · SAN DIEGO, CA</div>
 <h1 style="margin: 0; font-size: clamp(34px, 6vw, 64px); line-height: 1.05; font-weight: 700; max-width: 900px">CTO and Customer Support</h1>
 <p style="margin: 0; font-size: 20px; line-height: 1.55; color: #B4BAC1; max-width: 720px">I build automations in CRMs, and tech systems growing startups run on, and I support their customers directly when something breaks.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px"><a href="#start" style="padding: 14px 26px; background: #F5B544; color: #101418; font-weight: 600; font-size: 16px; text-decoration: none">Plan your project</a><a href="#casestudy" style="padding: 14px 26px; border: 1px solid #5A636D; color: #ECEEF0; font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 12px">See the results</a></div>
 <div class="stc" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; background: #181D23; border: 1px solid #2B323A; padding: 20px 12px; margin-top: 16px">
 <div style="padding: 10px 22px"><div style="font-size: 36px; font-weight: 700; color: #F5B544">97%+</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">CSAT held over 12 months</div></div>
 <div style="padding: 10px 22px"><div style="font-size: 36px; font-weight: 700; color: #F5B544">3</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">Support platforms: Zendesk, Intercom, Slack</div></div>
 <div style="padding: 10px 22px"><div style="font-size: 36px; font-weight: 700; color: #F5B544">4</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">Projects built end to end, shown on this page</div></div>
+</div>
+</div>
+
+<div id="services" style="display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="lb">SERVICES · WHAT I BUILD FOR CLIENTS</div>
+<h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; max-width: 820px">Four ways I help a growing business</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #B4BAC1; max-width: 760px">Each one is backed by real work further down this page. Pick the ones you need when you <a href="#start">plan your project</a>.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 20px">
+<div class="pj">
+<div class="lb">FUNNELS · CONVERSION</div>
+<h3 style="margin: 0; font-size: 22px; font-weight: 600">Sales funnels that convert</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">One clear offer, an info-first checkout that captures every lead, a one-click upsell, and a clean delivery page.</p>
+<a class="svp" href="#casestudy"><b>337.5%</b> more conversions from link in bio</a>
+</div>
+<div class="pj">
+<div class="lb">CRM · AUTOMATION</div>
+<h3 style="margin: 0; font-size: 22px; font-weight: 600">Follow-up that runs itself</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">GoHighLevel workflows that score leads, nurture them by what they click, and route each one to the right person.</p>
+<a class="svp" href="#projects"><b>Scored, nurtured and routed</b> without manual work</a>
+</div>
+<div class="pj">
+<div class="lb">CUSTOM CODE · INTEGRATIONS</div>
+<h3 style="margin: 0; font-size: 22px; font-weight: 600">Features your platform lacks</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">Scripts, hidden fields, APIs and AI automations that fill the gaps your tools leave, with the trade-offs explained up front.</p>
+<a class="svp" href="#code"><b>Sequential IDs</b> GoHighLevel did not offer</a>
+</div>
+<div class="pj">
+<div class="lb">SUPPORT · SYSTEMS</div>
+<h3 style="margin: 0; font-size: 22px; font-weight: 600">Support your customers trust</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.6; color: #C4C9CF">Help desk setup, triage and training across Zendesk, Intercom and Slack, plus walkthrough videos that boost product adoption.</p>
+<a class="svp" href="#experience"><b>97%+ CSAT</b> held for 12 months</a>
+</div>
 </div>
 </div>
 
@@ -289,6 +376,72 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 </div>
 </div>
 
+<div id="process" style="display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="lb">HOW WE WORK TOGETHER</div>
+<h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; max-width: 820px">From first call to running on its own</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #B4BAC1; max-width: 760px">Every project follows the same five steps, so you always know what is happening, what is next, and what I need from you.</p>
+</div>
+<ol class="jr">
+<li><b>01</b><h3>Discovery call</h3><p>We talk through your goals, your current tools, and what better looks like in numbers.</p></li>
+<li><b>02</b><h3>Audit and plan</h3><p>I map your funnel, CRM or support setup, find the leaks, and send a written plan with milestones.</p></li>
+<li><b>03</b><h3>Build</h3><p>I build inside your own accounts and update you in plain English as each task gets done.</p></li>
+<li><b>04</b><h3>Launch</h3><p>Every path gets tested on mobile and desktop before it goes live, then I watch the first results.</p></li>
+<li><b>05</b><h3>Support and improve</h3><p>I fix what breaks, tune against the numbers, and hand over written docs and video walkthroughs.</p></li>
+</ol>
+<div class="stc" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0; background: #181D23; border: 1px solid #2B323A; padding: 20px 12px">
+<div style="padding: 10px 22px"><div class="pr">You own it</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">Everything is built in your accounts, so nothing is locked to me.</div></div>
+<div style="padding: 10px 22px"><div class="pr">Plain updates</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">Progress in plain English, with clear next steps and who owns them.</div></div>
+<div style="padding: 10px 22px"><div class="pr">Documented</div><div style="font-size: 15px; color: #B4BAC1; margin-top: 4px">Written docs and video walkthroughs, so your team can run it.</div></div>
+</div>
+</div>
+
+<div id="start" style="display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div class="lb">CLIENT PROJECT MANAGER</div>
+<h2 style="margin: 0; font-size: 36px; line-height: 1.15; font-weight: 700; max-width: 820px">Plan your project and track it here</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #B4BAC1; max-width: 760px">Choose what you need and this builds your project board: every task, who owns it, and a rough timeline. Send it to me to get started, then come back to tick tasks off. Your board is saved in this browser only.</p>
+</div>
+<div class="pm" style="background: #181D23; border: 1px solid #2B323A; padding: 32px">
+<noscript><p class="cp">The project planner needs JavaScript. Email <a href="mailto:Chaddwickk001@gmail.com">Chaddwickk001@gmail.com</a> with what you need and I will send a plan.</p></noscript>
+<form id="pmf" class="pmf" hidden>
+<fieldset>
+<legend class="lb">1. WHAT DO YOU NEED?</legend>
+<div class="pmo" id="pmo"></div>
+<p class="pme" id="pme" role="alert"></p>
+</fieldset>
+<fieldset>
+<legend class="lb">2. ABOUT YOU</legend>
+<div class="pmg">
+<label>Your name<input name="name" autocomplete="name" required></label>
+<label>Email<input name="email" type="email" autocomplete="email" required></label>
+<label>Business<input name="business" autocomplete="organization"></label>
+<label>When do you want to start?<select name="start"><option>As soon as possible</option><option>In the next month</option><option>Just exploring</option></select></label>
+</div>
+<label>Anything else I should know?<textarea name="notes" rows="3" placeholder="Your tools, your numbers today, what success looks like"></textarea></label>
+</fieldset>
+<button type="submit" class="pmb pmp">Build my project board</button>
+</form>
+<div id="pmv" hidden>
+<div class="pmh">
+<div>
+<div class="lb" id="pmn"></div>
+<p class="cp" id="pms" style="margin-top: 6px"></p>
+</div>
+<div class="pmk"><div class="pmbar"><span id="pmbar"></span></div><span id="pmpct" aria-live="polite"></span></div>
+</div>
+<div class="pmc" id="pmc"></div>
+<div class="pma">
+<a class="pmb pmp" id="pmsend" href="#">Send this plan to Chadwick</a>
+<button type="button" class="pmb" id="pmcopy">Copy plan</button>
+<button type="button" class="pmb" id="pmedit">Edit</button>
+<button type="button" class="pmb" id="pmreset">Start over</button>
+<span class="pmt" id="pmt" aria-live="polite"></span>
+</div>
+</div>
+</div>
+</div>
+
 <div id="experience" style="display: flex; flex-direction: column; gap: 28px">
 <div><div class="lb">BACKGROUND</div><h2 style="margin: 8px 0 0; font-size: 36px; font-weight: 700">Experience</h2></div>
 <div style="display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 28px 32px; border-top: 1px solid #2B323A; padding-top: 28px">
@@ -314,7 +467,7 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
 
 <div id="contact" style="background: #181D23; border: 1px solid #2B323A; padding: 48px 32px; display: flex; flex-direction: column; gap: 20px">
 <h2 style="margin: 0; font-size: 36px; font-weight: 700">Let's connect</h2>
-<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #C4C9CF; max-width: 640px; width: 706px; height: 58px">Remote Customer Support/Help Desk, SaaS support, Tier 1 Support, and light Tier 2 roles.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px"><div style="display: flex; flex-direction: column; gap: 8px"><div class="lb" style="font-size: 14px">HAVE A PROJECT?</div><p style="margin: 0; font-size: 18px; line-height: 1.6; color: #C4C9CF">Funnels, CRM automation, custom code or support systems. <a href="#start">Build your project plan</a> and send it over. I will reply with next steps.</p></div><div style="display: flex; flex-direction: column; gap: 8px"><div class="lb" style="font-size: 14px">HIRING?</div><p style="margin: 0; font-size: 18px; line-height: 1.6; color: #C4C9CF">Remote Customer Support/Help Desk, SaaS support, Tier 1 Support, and light Tier 2 roles.</p></div></div>
 <div style="display: flex; flex-wrap: wrap; gap: 12px 32px; font-size: 17px">
 <a href="mailto:Chaddwickk001@gmail.com">Chaddwickk001@gmail.com</a><a href="https://www.linkedin.com/in/chadwick-lundgren/" target="_blank" rel="noopener noreferrer">linkedin.com/in/chadwick-lundgren</a>
 </div>
@@ -352,6 +505,188 @@ details[open]>.tsum .chev{transform:rotate(-135deg);margin:6px 6px 0 0}
     }
   }, { threshold: 0.3 });
   io.observe(el);
+})();
+</script>
+<script>
+(function () {
+  var KEY = 'cl-project-v1';
+  var EMAIL = 'Chaddwickk001@gmail.com';
+  var form = document.getElementById('pmf');
+  var view = document.getElementById('pmv');
+  if (!form || !view) { return; }
+
+  // Each service adds its own tasks to the shared phases. "you" marks tasks the client owns.
+  var SERVICES = [
+    { id: 'funnel', name: 'Sales funnel', desc: 'Turn traffic into sales with a focused funnel and upsell.', weeks: 2, tasks: {
+      audit: ['Review current traffic, click-through and checkout numbers'],
+      build: ['Landing page: one product, one story, one button', 'Info-first checkout that captures every lead', 'One-click upsell offer', 'Delivery page with access links'],
+      launch: ['Test every checkout path on mobile and desktop'],
+      you: ['Send product details, pricing and images'] } },
+    { id: 'crm', name: 'CRM automation', desc: 'Score, nurture and route leads automatically in GoHighLevel.', weeks: 2, tasks: {
+      audit: ['Map your current pipeline, tags and workflows'],
+      build: ['Lead scoring workflow', 'Nurture sequences based on clicks and opens', 'Lead routing to the right owner (UTM based)'],
+      launch: ['Run test contacts through every branch'],
+      you: ['Approve the email copy and send schedule'] } },
+    { id: 'code', name: 'Custom code or integration', desc: 'Add a feature or connect tools your platform does not.', weeks: 1, tasks: {
+      audit: ['Confirm what the platform can and cannot do natively'],
+      build: ['Build the script or integration', 'Write up how it works and its trade-offs'],
+      launch: ['Verify it end to end in your live account'],
+      you: [] } },
+    { id: 'ai', name: 'AI or reporting automation', desc: 'Automate a daily task like summaries, briefs or reports.', weeks: 1, tasks: {
+      audit: ['Pick the repetitive task and measure the time it takes today'],
+      build: ['Connect the APIs and schedule the job', 'Format the output where your team works (Notion, email, Slack)'],
+      launch: ['Run it for a week and tune the output'],
+      you: ['Share API access for the tools involved'] } },
+    { id: 'support', name: 'Customer support setup', desc: 'Help desk, triage and docs your customers can rely on.', weeks: 2, tasks: {
+      audit: ['Review ticket volume, top questions and response times'],
+      build: ['Set up help desk views, macros and routing', 'Write help articles for the top questions', 'Record walkthrough videos'],
+      launch: ['Train your team on a live call'],
+      you: ['Invite me to your help desk'] } }
+  ];
+  var PHASES = [
+    { id: 'discovery', name: 'Discovery', base: [['Book a discovery call', 1], ['Share access to the accounts involved', 1]] },
+    { id: 'audit', name: 'Audit and plan', base: [['Written plan with milestones and dates', 0], ['Approve the plan', 1]] },
+    { id: 'build', name: 'Build', base: [] },
+    { id: 'launch', name: 'Launch', base: [['Go live and watch the first results', 0]] },
+    { id: 'support', name: 'Support and improve', base: [['Written docs and video walkthroughs', 0], ['Review results together and pick next improvements', 1]] }
+  ];
+
+  var load = function () { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
+  var save = function (s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} };
+  var clear = function () { try { localStorage.removeItem(KEY); } catch (e) {} };
+  var state = load();
+
+  var opts = document.getElementById('pmo');
+  SERVICES.forEach(function (s) {
+    var l = document.createElement('label');
+    var i = document.createElement('input');
+    i.type = 'checkbox'; i.name = 'svc'; i.value = s.id;
+    var t = document.createElement('span');
+    var b = document.createElement('b'); b.textContent = s.name;
+    t.appendChild(b); t.appendChild(document.createTextNode(s.desc));
+    l.appendChild(i); l.appendChild(t); opts.appendChild(l);
+  });
+
+  // Build the task list for each phase from the chosen services.
+  var plan = function (s) {
+    var picked = SERVICES.filter(function (x) { return s.services.indexOf(x.id) > -1; });
+    return PHASES.map(function (p) {
+      var tasks = p.base.map(function (t) { return { text: t[0], you: !!t[1] }; });
+      picked.forEach(function (x) {
+        (x.tasks[p.id] || []).forEach(function (t) { tasks.push({ text: t, you: false }); });
+        if (p.id === 'discovery') { x.tasks.you.forEach(function (t) { tasks.push({ text: t, you: true }); }); }
+      });
+      return { id: p.id, name: p.name, tasks: tasks };
+    });
+  };
+  var weeks = function (s) {
+    return SERVICES.reduce(function (n, x) { return n + (s.services.indexOf(x.id) > -1 ? x.weeks : 0); }, 2);
+  };
+  var names = function (s) {
+    return SERVICES.filter(function (x) { return s.services.indexOf(x.id) > -1; }).map(function (x) { return x.name; }).join(', ');
+  };
+  var key = function (p, t) { return p.id + ':' + t.text; };
+
+  // Short form leaves out the task list so the mailto link stays within what mail apps accept.
+  var summary = function (s, short) {
+    var lines = ['Project request from ' + s.name + (s.business ? ' (' + s.business + ')' : ''),
+      'Email: ' + s.email, 'Services: ' + names(s), 'Start: ' + s.start, 'Rough timeline: about ' + weeks(s) + ' weeks'];
+    if (s.notes) { lines.push('Notes: ' + s.notes); }
+    plan(s).forEach(function (p) {
+      if (short) { return; }
+      lines.push('', p.name.toUpperCase());
+      p.tasks.forEach(function (t) { lines.push((s.done[key(p, t)] ? '[x] ' : '[ ] ') + t.text + (t.you ? ' (you)' : '')); });
+    });
+    return lines.join('\n');
+  };
+
+  var render = function () {
+    if (!state) { form.hidden = false; view.hidden = true; return; }
+    form.hidden = true; view.hidden = false;
+    document.getElementById('pmn').textContent = (state.business || state.name).toUpperCase() + ' · PROJECT BOARD';
+    document.getElementById('pms').textContent = names(state) + '. Rough timeline: about ' + weeks(state) + ' weeks once the plan is approved.';
+    var cols = document.getElementById('pmc');
+    cols.textContent = '';
+    var total = 0, done = 0, current = null;
+    plan(state).forEach(function (p) {
+      var sec = document.createElement('section');
+      var h = document.createElement('h3');
+      var left = p.tasks.filter(function (t) { return !state.done[key(p, t)]; }).length;
+      total += p.tasks.length; done += p.tasks.length - left;
+      if (left && !current) { current = p.id; sec.className = 'now'; }
+      h.textContent = p.name;
+      var sm = document.createElement('small');
+      sm.textContent = left ? (current === p.id ? 'NOW · ' : '') + (p.tasks.length - left) + '/' + p.tasks.length : 'DONE';
+      h.appendChild(sm); sec.appendChild(h);
+      p.tasks.forEach(function (t) {
+        var l = document.createElement('label');
+        var i = document.createElement('input');
+        i.type = 'checkbox'; i.checked = !!state.done[key(p, t)];
+        i.addEventListener('change', function () {
+          if (i.checked) { state.done[key(p, t)] = true; } else { delete state.done[key(p, t)]; }
+          var idx = [].indexOf.call(cols.querySelectorAll('input'), i);
+          save(state); render();
+          var again = cols.querySelectorAll('input')[idx];
+          if (again) { again.focus(); }
+        });
+        var sp = document.createElement('span');
+        sp.textContent = t.text;
+        var who = document.createElement('em');
+        who.textContent = t.you ? 'YOU' : 'CHADWICK';
+        if (t.you) { who.className = 'you'; }
+        sp.appendChild(who);
+        l.appendChild(i); l.appendChild(sp); sec.appendChild(l);
+      });
+      cols.appendChild(sec);
+    });
+    var pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('pmbar').style.width = pct + '%';
+    document.getElementById('pmpct').textContent = pct + '% complete';
+    document.getElementById('pmsend').href = 'mailto:' + EMAIL + '?subject=' + encodeURIComponent('Project request: ' + (state.business || state.name)) + '&body=' + encodeURIComponent(summary(state, true));
+  };
+
+  var note = function (msg) {
+    var el = document.getElementById('pmt');
+    el.textContent = msg;
+    setTimeout(function () { if (el.textContent === msg) { el.textContent = ''; } }, 3000);
+  };
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var picked = [].map.call(form.querySelectorAll('input[name=svc]:checked'), function (i) { return i.value; });
+    if (!picked.length) {
+      document.getElementById('pme').textContent = 'Pick at least one thing you need.';
+      form.querySelector('input[name=svc]').focus();
+      return;
+    }
+    document.getElementById('pme').textContent = '';
+    var f = form.elements;
+    state = { name: f.name.value.trim(), email: f.email.value.trim(), business: f.business.value.trim(),
+      start: f.start.value, notes: f.notes.value.trim(), services: picked, done: (state && state.done) || {} };
+    save(state); render();
+    document.getElementById('pmv').scrollIntoView({ block: 'start' });
+    document.getElementById('pmsend').focus({ preventScroll: true });
+  });
+
+  document.getElementById('pmedit').addEventListener('click', function () {
+    var f = form.elements;
+    ['name', 'email', 'business', 'start', 'notes'].forEach(function (k) { f[k].value = state[k]; });
+    [].forEach.call(form.querySelectorAll('input[name=svc]'), function (i) { i.checked = state.services.indexOf(i.value) > -1; });
+    form.hidden = false; view.hidden = true;
+    f.name.focus();
+  });
+  document.getElementById('pmreset').addEventListener('click', function () {
+    if (!window.confirm('Clear this project board?')) { return; }
+    clear(); state = null; form.reset(); render(); form.elements.name.focus();
+  });
+  document.getElementById('pmcopy').addEventListener('click', function () {
+    var text = summary(state);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { note('Plan copied'); }, function () { note('Copy failed, use Send instead'); });
+    } else { note('Copy is not supported here, use Send instead'); }
+  });
+
+  render();
 })();
 </script>
 </body>
