@@ -20,7 +20,10 @@ npm run render:vertical              # 9:16 → out/edit-vertical.mp4
    python3 ../.claude/skills/signature-edit-style/scripts/analyze.py public/vo.wav --music public/bed.mp3 --out timeline.json
    ```
 3. Edit `timeline.json`. Fill each `screen` scene's `src`. Set `"size": "xl"` on keywords and `"accent": true` on 1–2 italic-serif words per line. Add `chips`/`swipe` scenes where you want them. Set `audio.voice` / `audio.music` to the file names in `public/`.
-4. Render: `npx remotion render SignatureEdit out/edit.mp4 --props=timeline.json`.
+4. Preview renders while cutting: `npx remotion render SignatureEdit out/edit.mp4 --props=timeline.json`.
+5. **Final render, once the cut is locked:** `npm run final` (or `python3 finalize.py timeline.json --strength strong` for very noisy audio). This renders the cut without music and runs speech enhancement on only that final dialogue. It then mixes the music back in, ducked, and writes `out/final.mp4`. Use `npm run final:vertical` for 9:16. Extra Remotion flags go after `--`.
+
+   Enhancement uses DeepFilterNet when `install-editing-style.sh` has fetched it, and falls back to an ffmpeg denoise chain otherwise. Voice ends up at −14 LUFS.
 
 ## Scene types
 

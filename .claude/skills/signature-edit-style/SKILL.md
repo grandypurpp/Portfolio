@@ -1,6 +1,6 @@
 ---
 name: signature-edit-style
-description: House video-editing style for all client and personal content: clean off-white canvas, single red accent, word-by-word kinetic "punch" text synced to voiceover, "The 1st / 2nd" title cards, screen recordings in floating rounded cards, motion-blurred swipe transitions, cuts driven by VO words that land on or off a ~112 BPM beat. Use whenever planning, scripting, cutting, captioning, animating, or rendering any video, reel, short, ad, or edit, or when the user asks for "my style", "the usual edit", a listicle/tools/tips video, or kinetic text.
+description: House video-editing style for all client and personal content: clean off-white canvas, single red accent, word-by-word kinetic "punch" text synced to voiceover, "The 1st / 2nd" title cards, screen recordings in floating rounded cards, motion-blurred swipe transitions, cuts driven by VO words that land on or off a ~112 BPM beat. Use whenever planning, scripting, cutting, captioning, animating, or rendering any video, reel, short, ad, or edit, or when the user asks for "my style", "the usual edit", a listicle/tools/tips video, or kinetic text. Also covers the final audio pass: speech enhancement and denoise for subjects without an external mic, run only after the cut is locked.
 ---
 
 # Signature Edit Style
@@ -29,10 +29,15 @@ Near-white canvas (`#FDFBFE`), one saturated red (`#E70001`), nothing else. Text
 
 ## Workflow
 
-1. **Analyze** the VO and music. Run `python3 scripts/analyze.py <voiceover_or_video> [--music music.mp3] --out timeline.json`. It writes word timestamps, the beat grid, and a suggested cut list with on/off-beat labels.
+1. **Analyze** the *raw* VO and music. Don't enhance yet; that's the last step. Run `python3 scripts/analyze.py <voiceover_or_video> [--music music.mp3] --out timeline.json`. It writes word timestamps, the beat grid, and a suggested cut list with on/off-beat labels.
 2. **Script the cards**: in the timeline JSON, group words into cards (`title`, `kinetic`, `screen`, `cta`) and mark `accent: true` on the serif words and `size: "xl"` on keywords.
 3. **Render** with the Remotion template: `template/` next to this file once installed globally, or `editing-style-template/` in the Portfolio repo. See its README. Run `npx remotion render SignatureEdit out/edit.mp4 --props=timeline.json` (use `SignatureEditVertical` for 9:16).
-4. **Self-check** before delivery. Is every word on screen within 1 frame of its spoken start? Are there no fades between sections? Is there only one accent color? Does each title card have a breath before it? Is the music ducked?
+4. **Enhance the audio LAST**, only after the cut is locked and the total runtime is final, so no processing is wasted on footage that gets trimmed. Do this by default whenever the subject wasn't on an external or lav mic (camera, phone or laptop audio, a noisy room, echo).
+   - Remotion: `python3 finalize.py timeline.json [--vertical] [--strength light|medium|strong]`. It renders the locked cut without music, enhances that dialogue, then mixes the bed back in ducked under the voice.
+   - NLE (Premiere/Resolve/CapCut): export the locked cut with **dialogue only** (music muted), then run `python3 scripts/enhance_audio.py cut.mp4 --music bed.mp3 --music-volume 0.22 --out final.mp4`. Never enhance a mix that already has music in it, because the denoiser strips the music.
+   - Strength: `light` = decent mic with slight hiss · `medium` (default) = phone/camera mic · `strong` = loud room or street.
+   - Engine: DeepFilterNet (free, local, no account; installed by `install-editing-style.sh` into `bin/`). Falls back to an ffmpeg denoise chain automatically. Output voice is −14 LUFS, −1 dBTP, and the video stream is copied untouched.
+5. **Self-check** before delivery. Is every word on screen within 1 frame of its spoken start? Are there no fades between sections? Is there only one accent color? Does each title card have a breath before it? Is the music ducked?
 
 For Premiere/Resolve/CapCut/After Effects jobs, follow the same rules by hand. `references/style-spec.md` has the exact keyframe values for each NLE.
 

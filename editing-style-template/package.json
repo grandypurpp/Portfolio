@@ -7,7 +7,9 @@
     "studio": "remotion studio",
     "render": "remotion render SignatureEdit out/edit.mp4",
     "render:vertical": "remotion render SignatureEditVertical out/edit-vertical.mp4",
-    "still": "remotion still SignatureEdit out/still.png"
+    "still": "remotion still SignatureEdit out/still.png",
+    "final": "python3 finalize.py timeline.json",
+    "final:vertical": "python3 finalize.py timeline.json --vertical"
   },
   "dependencies": {
     "@remotion/cli": "4.0.539",
