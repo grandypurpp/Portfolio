@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Installs the signature-edit-style skill for Claude Code on this machine, so it
+# applies to every project (client and personal), not just this repo.
+#   ./install-editing-style.sh
+set -euo pipefail
+
+repo="$(cd "$(dirname "$0")" && pwd)"
+dest="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/signature-edit-style"
+
+mkdir -p "$dest"
+cp -R "$repo/.claude/skills/signature-edit-style/." "$dest/"
+
+# Ship the Remotion template alongside the skill (without node_modules / renders).
+mkdir -p "$dest/template"
+tar -C "$repo/editing-style-template" --exclude=node_modules --exclude=out -cf - . | tar -C "$dest/template" -xf -
+
+echo "Installed skill → $dest"
+echo "Remotion template → $dest/template (run 'npm install' there or copy it into a project)"
+
+if command -v python3 >/dev/null; then
+  echo "Installing analyzer deps (faster-whisper, librosa)…"
+  python3 -m pip install --user --quiet faster-whisper librosa || echo "pip install failed; run: python3 -m pip install faster-whisper librosa"
+fi
+command -v ffmpeg >/dev/null || echo "NOTE: ffmpeg not found. Install it (macOS: brew install ffmpeg)."
+command -v node >/dev/null || echo "NOTE: Node.js not found. Install Node 18+ to render with Remotion."
+echo "Done. Restart Claude Code, then ask for 'my edit style' or run /signature-edit-style."

@@ -1,0 +1,16 @@
+[  0.00-  4.84]  Pro editors never tell you about these five websites, but these are the ones behind their best work.
+    Pro@0.00 editors@0.26 never@0.66 tell@1.10 you@1.36 about@1.50 these@1.72 five@2.02 websites,@2.26 but@2.98 these@3.14 are@3.32 the@3.44 ones@3.52 behind@3.76 their@4.08 best@4.30 work.@4.58
+[  5.08- 10.64]  The first one, a library of half a million real sound effects, footsteps, ambience, foley,
+    The@5.08 first@5.14 one,@5.34 a@5.94 library@6.06 of@6.38 half@6.62 a@6.94 million@7.08 real@7.32 sound@7.70 effects,@8.00 footsteps,@8.74 ambience,@9.62 foley,@10.30
+[ 10.86- 15.82]  the tiny sounds that make a scene feel alive. Free. The second, free 3D models you can drop
+    the@10.86 tiny@10.92 sounds@11.20 that@11.54 make@11.72 a@11.88 scene@12.02 feel@12.24 alive.@12.50 Free.@13.28 The@13.80 second,@13.90 free@14.48 3D@14.66 models@15.00 you@15.30 can@15.50 drop@15.62
+[ 15.82- 20.34]  straight into your edit. Objects, scenes, whole environments. The third, turns any footage
+    straight@15.82 into@16.12 your@16.36 edit.@16.50 Objects,@16.96 scenes,@17.52 whole@18.04 environments.@18.18 The@19.04 third,@19.12 turns@19.60 any@19.78 footage@20.08
+[ 20.34- 25.58]  into ASCII. Dithered, retro looks right in your browser. No plugins, runs at 60 frames a
+    into@20.34 ASCII.@20.64 Dithered,@21.42 retro@21.90 looks@22.22 right@22.54 in@22.80 your@22.92 browser.@23.02 No@23.66 plugins,@23.82 runs@24.42 at@24.58 60@24.78 frames@25.08 a@25.38
+[ 25.58- 31.16]  second. The fourth, real film grain burns and light leaks, scanned off actual Super 8 and 16
+    second.@25.58 The@26.06 fourth,@26.08 real@26.64 film@26.86 grain@27.16 burns@27.50 and@27.94 light@28.18 leaks,@28.38 scanned@28.94 off@29.24 actual@29.50 Super@29.90 8@30.26 and@30.58 16@30.74
+[ 31.16- 35.98]  millimeters. The analog texture digital can't fade. And the fifth, 100 free fonts,
+    millimeters.@31.16 The@32.02 analog@32.12 texture@32.36 digital@32.86 can't@33.28 fade.@33.80 And@34.18 the@34.20 fifth,@34.34 100@34.86 free@35.22 fonts,@35.56
+[ 36.14- 40.40]  sorted by mood with pairings already built. Comment tools and I'll DM you all five.
+    sorted@36.14 by@36.36 mood@36.58 with@36.88 pairings@37.16 already@37.60 built.@37.86 Comment@38.36 tools@38.62 and@39.06 I'll@39.40 DM@39.54 you@39.72 all@39.98 five.@40.18
