@@ -1,0 +1,342 @@
+{
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationSec": 15.5,
+  "bpm": 112.35,
+  "beats": [
+    0.12,
+    0.654,
+    1.188,
+    1.722,
+    2.256,
+    2.79,
+    3.324,
+    3.858,
+    4.392,
+    4.926,
+    5.46,
+    5.994,
+    6.529,
+    7.063,
+    7.597,
+    8.131,
+    8.665,
+    9.199,
+    9.733,
+    10.267,
+    10.801,
+    11.335,
+    11.869,
+    12.403,
+    12.937,
+    13.471,
+    14.005,
+    14.539,
+    15.073,
+    15.607
+  ],
+  "audio": {
+    "voice": null,
+    "music": null,
+    "musicVolume": 0.22
+  },
+  "scenes": [
+    {
+      "type": "words",
+      "start": 0.0,
+      "end": 2.0,
+      "lines": [
+        [
+          {
+            "text": "Pro",
+            "start": 0.13,
+            "size": "lg"
+          },
+          {
+            "text": "editors",
+            "start": 0.33,
+            "size": "lg"
+          }
+        ],
+        [
+          {
+            "text": "never",
+            "start": 0.8,
+            "size": "md",
+            "accent": true
+          },
+          {
+            "text": "tell",
+            "start": 1.0,
+            "size": "md",
+            "accent": true
+          },
+          {
+            "text": "you",
+            "start": 1.2,
+            "size": "md",
+            "accent": true
+          },
+          {
+            "text": "about",
+            "start": 1.4,
+            "size": "md",
+            "accent": true
+          }
+        ]
+      ]
+    },
+    {
+      "type": "chips",
+      "start": 2.0,
+      "end": 4.73,
+      "title": [
+        {
+          "text": "5",
+          "start": 2.02,
+          "size": "lg"
+        },
+        {
+          "text": "websites",
+          "start": 2.2,
+          "size": "lg"
+        }
+      ],
+      "chips": [
+        "demo-1.webp",
+        "demo-2.webp",
+        "demo-3.webp",
+        "demo-4.webp",
+        "demo-5.webp"
+      ],
+      "chipTimes": [
+        2.256,
+        2.79,
+        3.324,
+        3.858,
+        4.392
+      ],
+      "caption": [
+        {
+          "text": "but",
+          "start": 3.0,
+          "size": "sm"
+        },
+        {
+          "text": "these",
+          "start": 3.17,
+          "size": "sm"
+        },
+        {
+          "text": "are",
+          "start": 3.34,
+          "size": "sm"
+        },
+        {
+          "text": "the",
+          "start": 3.51,
+          "size": "sm"
+        },
+        {
+          "text": "ones",
+          "start": 3.68,
+          "size": "sm"
+        },
+        {
+          "text": "behind",
+          "start": 3.85,
+          "size": "sm"
+        },
+        {
+          "text": "their",
+          "start": 4.02,
+          "size": "sm"
+        },
+        {
+          "text": "best",
+          "start": 4.19,
+          "size": "sm"
+        },
+        {
+          "text": "work",
+          "start": 4.36,
+          "size": "sm"
+        }
+      ]
+    },
+    {
+      "type": "swipe",
+      "start": 4.6,
+      "end": 4.93,
+      "src": "demo-1.webp"
+    },
+    {
+      "type": "words",
+      "start": 4.93,
+      "end": 5.9,
+      "lines": [
+        [
+          {
+            "text": "The",
+            "start": 5.08,
+            "size": "md"
+          }
+        ],
+        [
+          {
+            "text": "1st",
+            "start": 5.34,
+            "size": "xl"
+          }
+        ],
+        [
+          {
+            "text": "one",
+            "start": 5.6,
+            "size": "md"
+          }
+        ]
+      ]
+    },
+    {
+      "type": "screen",
+      "start": 5.9,
+      "end": 8.665,
+      "src": "demo-1.webp"
+    },
+    {
+      "type": "screen",
+      "start": 8.665,
+      "end": 9.733,
+      "src": "demo-4.webp"
+    },
+    {
+      "type": "words",
+      "start": 9.733,
+      "end": 12.2,
+      "lines": [
+        [
+          {
+            "text": "No",
+            "start": 9.75,
+            "size": "md"
+          },
+          {
+            "text": "plugins",
+            "start": 9.92,
+            "size": "md"
+          }
+        ],
+        [
+          {
+            "text": "runs",
+            "start": 10.5,
+            "size": "md"
+          },
+          {
+            "text": "at",
+            "start": 10.68,
+            "size": "md"
+          },
+          {
+            "text": "60",
+            "start": 10.85,
+            "size": "md"
+          },
+          {
+            "text": "frames",
+            "start": 11.1,
+            "size": "md",
+            "accent": true
+          },
+          {
+            "text": "a",
+            "start": 11.35,
+            "size": "md"
+          },
+          {
+            "text": "second",
+            "start": 11.45,
+            "size": "md"
+          }
+        ]
+      ]
+    },
+    {
+      "type": "words",
+      "start": 12.2,
+      "end": 13.3,
+      "lines": [
+        [
+          {
+            "text": "The",
+            "start": 12.35,
+            "size": "md"
+          }
+        ],
+        [
+          {
+            "text": "2nd",
+            "start": 12.55,
+            "size": "xl"
+          }
+        ]
+      ]
+    },
+    {
+      "type": "words",
+      "start": 13.3,
+      "end": 15.5,
+      "lines": [
+        [
+          {
+            "text": "comment",
+            "start": 13.42,
+            "size": "md"
+          }
+        ],
+        [
+          {
+            "text": "TOOLS",
+            "start": 13.7,
+            "size": "lg",
+            "accent": true
+          }
+        ],
+        [
+          {
+            "text": "and",
+            "start": 14.1,
+            "size": "sm"
+          },
+          {
+            "text": "I'll",
+            "start": 14.25,
+            "size": "sm"
+          },
+          {
+            "text": "DM",
+            "start": 14.4,
+            "size": "sm"
+          },
+          {
+            "text": "you",
+            "start": 14.55,
+            "size": "sm"
+          },
+          {
+            "text": "all",
+            "start": 14.7,
+            "size": "sm"
+          },
+          {
+            "text": "five",
+            "start": 14.85,
+            "size": "sm"
+          }
+        ]
+      ]
+    }
+  ]
+}
