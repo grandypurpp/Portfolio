@@ -187,22 +187,41 @@ function titleCard(c, lt, bgc, fg, num, word, numCol) {
   const s = lerp(1.14, 1, tw(lt, 0, 0.25)); c.save(); c.translate(CW / 2, CH / 2 + 20); c.scale(s, s);
   T(c, word, 0, 56, 168, 900, fg, { f: HEAD, align: 'center', ls: -5 }); c.restore();
 }
-function cSame(c, lt) {
-  c.fillStyle = '#0d0d10'; c.fillRect(0, 0, CW, CH);
-  for (let i = 0; i < 12; i++) {
-    const p = tw(lt, 0.25 + i * 0.09, 0.45 + i * 0.09); if (p <= 0) continue;
-    const x = 44 + (i % 4) * 210, y = 34 + Math.floor(i / 4) * 150, s = lerp(0.7, 1, p);
-    c.save(); c.globalAlpha = p; c.translate(x + 95, y + 65); c.scale(s, s); c.translate(-95, -65);
-    c.beginPath(); c.roundRect(0, 0, 190, 130, 16); c.fillStyle = '#1b1b22'; c.fill();
-    const g = c.createLinearGradient(0, 0, 190, 0); g.addColorStop(0, '#7c5cff'); g.addColorStop(1, '#4f8cff'); c.fillStyle = g; c.beginPath(); c.roundRect(0, 0, 190, 46, [16, 16, 0, 0]); c.fill();
-    c.fillStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.roundRect(16, 64, 120, 12, 6); c.fill(); c.beginPath(); c.roundRect(16, 90, 84, 12, 6); c.fill();
+const SPEED = (() => { const R = rng(21); return Array.from({ length: 110 }, () => ({ a: R() * 6.2832, r0: 30 + R() * 130, len: 90 + R() * 420, w: 1 + R() * 3.2, sp: 0.6 + R() * 0.9, wh: R() < 0.3 })); })();
+function scramble(str, lt, t0, seed) {
+  const G = '#%&0123456789ABXZ/'; let out = '';
+  for (let i = 0; i < str.length; i++) { if (str[i] === ' ' || lt >= t0 + 0.14 + i * 0.03) out += str[i]; else { const k = Math.floor(lt * 30) * 31 + i * 17 + seed; out += G[((k * 2654435761) >>> 0) % G.length]; } }
+  return out;
+}
+// Kinetic type: HUD ring and scramble text, white flash, then a speed-line burst with an RGB-split word slam.
+function cKinetic(c, lt) {
+  c.fillStyle = '#07090c'; c.fillRect(0, 0, CW, CH);
+  c.strokeStyle = ac(0.1); c.lineWidth = 1; c.beginPath();
+  for (let x = 8; x < CW; x += 46) { c.moveTo(x, 0); c.lineTo(x, CH); } for (let y = 1; y < CH; y += 46) { c.moveTo(0, y); c.lineTo(CW, y); } c.stroke();
+  const cx = CW / 2, cy = CH / 2 + 14;
+  if (lt < 1.95) {
+    c.strokeStyle = ac(0.3); c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 196, 0, 7); c.stroke();
+    c.setLineDash([14, 10]); c.lineDashOffset = -lt * 70; c.beginPath(); c.arc(cx, cy, 214, 0, 7); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = ac(1); c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.arc(cx, cy, 178, -Math.PI / 2, -Math.PI / 2 + 6.2832 * clamp(lt / 1.9)); c.stroke(); c.lineCap = 'butt';
+    const ph = lt < 0.6 ? 0 : lt < 1.3 ? 1 : 2, t0 = [0, 0.6, 1.3][ph], kick = 1 + 0.08 * (1 - tw(lt, t0, t0 + 0.18));
+    T(c, 'EVERY AI APP', cx + 3, 58, 26, 800, ac(1), { f: HEAD, align: 'center', ls: 6 });
+    c.save(); c.translate(cx, cy); c.scale(kick, kick); c.shadowColor = ac(0.95); c.shadowBlur = 26 * S;
+    c.fillStyle = 'rgba(7,9,12,0.86)'; c.fillRect(-300, -52, 600, 104);
+    T(c, scramble(['SAME FONTS', 'SAME GRADIENT', 'SAME CARDS'][ph], lt, t0, ph * 7), 0, 24, 66, 800, '#fff', { f: MONO, align: 'center', ls: -1 }); c.restore();
+    T(c, (ph + 1) + ' / 3', cx, CH - 30, 22, 500, ac(0.8), { f: MONO, align: 'center', ls: 3 });
+    const fl = clamp((lt - 1.86) / 0.09); if (fl > 0) { c.fillStyle = `rgba(255,255,255,${fl})`; c.fillRect(0, 0, CW, CH); }
+  } else {
+    const k = lt - 1.95;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    let g = c.createRadialGradient(cx, cy, 0, cx, cy, 420); g.addColorStop(0, ac(0.55)); g.addColorStop(1, ac(0)); c.fillStyle = g; c.fillRect(0, 0, CW, CH);
+    for (const l of SPEED) { const p = clamp(k * l.sp * 1.5 + 0.2), r0 = l.r0 + p * 240 + k * 60 * l.sp, r1 = r0 + l.len * p;
+      c.strokeStyle = l.wh ? 'rgba(255,255,255,0.7)' : ac(0.85); c.lineWidth = l.w; c.beginPath(); c.moveTo(cx + Math.cos(l.a) * r0, cy + Math.sin(l.a) * r0); c.lineTo(cx + Math.cos(l.a) * r1, cy + Math.sin(l.a) * r1); c.stroke(); }
     c.restore();
-  }
-  const wp = tw(lt, 1.75, 2.1);
-  if (wp > 0) {
-    c.beginPath(); c.arc(CW / 2, CH / 2, 6 + 560 * wp, 0, 7); c.fillStyle = ac(1); c.fill();
-    const r = tw(lt, 1.95, 2.3); c.save(); c.beginPath(); c.rect(0, 0, CW * r, CH); c.clip();
-    T(c, 'GENERIC', CW / 2, CH / 2 + 52, 150, 900, '#0b0b0b', { f: HEAD, align: 'center', ls: -5 }); c.restore();
+    const sc = lerp(1.7, 1, tw(lt, 1.95, 2.2)), sp = 16 * (1 - tw(lt, 1.95, 2.45));
+    c.save(); c.translate(cx, cy); c.scale(sc, sc); c.transform(1, 0, -0.12, 1, 0, 0);
+    if (sp > 0.4) { c.globalCompositeOperation = 'lighter'; T(c, 'GENERIC', -sp, 52, 150, 900, 'rgba(255,40,60,0.9)', { f: HEAD, align: 'center', ls: -5 }); T(c, 'GENERIC', sp, 52, 150, 900, 'rgba(40,220,255,0.9)', { f: HEAD, align: 'center', ls: -5 }); c.globalCompositeOperation = 'source-over'; }
+    c.shadowColor = ac(1); c.shadowBlur = 40 * S; T(c, 'GENERIC', 0, 52, 150, 900, '#fff', { f: HEAD, align: 'center', ls: -5 }); c.restore();
+    const fl = 1 - clamp(k / 0.22); if (fl > 0) { c.fillStyle = `rgba(255,255,255,${fl})`; c.fillRect(0, 0, CW, CH); }
   }
 }
 function cType(c, lt) {
@@ -261,11 +280,11 @@ function cCurve(c, lt) {
   }
 }
 const CARDS = [
-  [2.9, 5.6, cSame], [7.8, 8.9, (c, lt) => titleCard(c, lt, '#ffd84d', '#0b0b0b', '01', 'TYPE')], [8.9, 11.5, cType],
+  [2.9, 5.6, cKinetic], [7.8, 8.9, (c, lt) => titleCard(c, lt, '#ffd84d', '#0b0b0b', '01', 'TYPE')], [8.9, 11.5, cType],
   [12.8, 14.2, (c, lt) => titleCard(c, lt, ac(1), '#fff', '02', 'COLOR')], [14.2, 18.6, cColor],
   [21.5, 22.4, (c, lt) => titleCard(c, lt, '#0d0d10', '#fff', '03', 'MOTION', ac(1))], [22.4, 27.2, cCurve]
 ];
-const JUMPS = [['Hook', 0], ['Sameness card', 2.9], ['Fix 1 type', 5.6], ['Fix 2 color', 11.5], ['Fix 3 motion', 18.6], ['Call to action', 27.2]];
+const JUMPS = [['Hook', 0], ['Kinetic card', 2.9], ['Fix 1 type', 5.6], ['Fix 2 color', 11.5], ['Fix 3 motion', 18.6], ['Call to action', 27.2]];
 
 function frame(t) {
   t = clamp(t, 0, DUR - 1e-4);
@@ -317,8 +336,8 @@ function schedule(oc, which) {
   if (which === 'sfx') {
     const cut = (t, big) => { pop(t, 0.3); click(t, 1500, 0.22); if (big) { whoosh(t - 0.04, 0.45, 500, 3600, 0.26); impact(t, 0.5); } else impact(t, 0.22); };
     pop(0.12, 0.3); impact(0.12, 0.35);
-    cut(2.9, true); for (let i = 0; i < 12; i++) tick(3.15 + i * 0.09, 900 * Math.pow(2, (i % 6) / 12), 0.08);
-    whoosh(4.8, 0.6, 300, 3200, 0.34); impact(4.95, 0.75); shimmer(4.95, 0.6, 0.07);
+    cut(2.9, true); [2.9, 3.5, 4.2].forEach((t0, j) => { for (let i = 0; i < 7; i++) click(t0 + 0.03 + i * 0.045, 2400 + ((i * 7 + j * 3) % 5) * 260, 0.1); tick(t0 + 0.42, [1047, 1175, 1319][j], 0.16); impact(t0, 0.25); });
+    riser(4.25, 4.82, 0.2); whoosh(4.82, 0.5, 300, 4200, 0.4); impact(4.86, 0.9); shimmer(4.86, 0.7, 0.09);
     cut(5.6); cut(7.8, true); cut(8.9);
     whoosh(9.85, 0.7, 2400, 600, 0.14); [1047, 1175, 1319, 1568].forEach((f, i) => tick(10.2 + i * 0.25, f, 0.14));
     cut(11.5); cut(12.8, true); cut(14.2);
