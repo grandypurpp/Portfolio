@@ -1,0 +1,682 @@
+<title>SMGP Motion Reel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;800&display=swap">
+<style>
+/* Layout: an edit bay. 9:16 program monitor on the left, transport and tuning rack on the right; stacks on phones. */
+:root{
+  color-scheme:dark;
+  --bg:#090b10; --panel:#10131a; --line:#212633; --fg:#e8ecf4; --muted:#8a92a6; --accent:#4f8cff;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45}
+.wrap{max-width:1120px;margin:0 auto;padding-block:20px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.wrap.render{max-width:none;padding:0;gap:0}
+.wrap.render header,.wrap.render .rack{display:none}
+.wrap.render .bay{display:block}
+.wrap.render canvas#stage{width:1080px;height:1920px;max-width:none;border:0;border-radius:0}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+h1{font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0}
+header p{margin:0;color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.bay{display:grid;grid-template-columns:minmax(0,auto) minmax(0,380px);gap:22px;align-items:start;justify-content:center}
+.monitor{min-width:0;display:flex;justify-content:center}
+canvas#stage{display:block;width:min(100%,calc((100vh - 130px)*9/16));min-width:min(100%,250px);max-width:100%;aspect-ratio:9/16;height:auto;border-radius:14px;border:1px solid var(--line);background:#06080d;cursor:pointer}
+.rack{min-width:0;display:flex;flex-direction:column;gap:16px}
+.group{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.group h2{margin:0;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.transport{display:flex;align-items:center;gap:12px}
+button{font:inherit;color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#play{background:var(--accent);border-color:var(--accent);color:#04060a;font-weight:700;min-width:84px}
+#time{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:auto}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font-size:12.5px;padding:5px 9px;color:var(--muted)}
+.chips button.on{color:var(--fg);border-color:var(--accent)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.row label{font-size:13.5px}
+.row output{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row input[type=range]{grid-column:1/-1}
+.check{display:flex;align-items:center;gap:9px;font-size:13.5px}
+.check input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.ease{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center}
+#curve{width:96px;height:96px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.ease code{font-family:var(--mono);font-size:12px;color:var(--fg);display:block;overflow-wrap:anywhere}
+.ease small{color:var(--muted);font-size:12px;display:block;margin-top:4px}
+input[type=color]{width:44px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:transparent}
+.note{color:var(--muted);font-size:12.5px;margin:0}
+@media (max-width:760px){.bay{grid-template-columns:minmax(0,1fr)}canvas#stage{width:min(100%,340px)}}
+</style>
+
+<div class="wrap" id="wrap">
+  <header>
+    <h1>SMGP Motion Reel</h1>
+    <p>9:16 · 36 s · 120 BPM · sample copy and data</p>
+  </header>
+  <div class="bay">
+    <div class="monitor"><canvas id="stage" width="720" height="1280" aria-label="Motion graphics preview"></canvas></div>
+    <div class="rack">
+      <div class="group">
+        <h2>Transport</h2>
+        <div class="transport">
+          <button id="play" type="button">Play</button>
+          <button id="restart" type="button">Restart</button>
+          <span id="time">00.00 / 36.00</span>
+        </div>
+        <input id="scrub" type="range" min="0" max="36" step="0.01" value="2.9" aria-label="Timeline position">
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="group">
+        <h2>Motion curve</h2>
+        <div class="ease">
+          <canvas id="curve" width="192" height="192" aria-hidden="true"></canvas>
+          <div><code id="bez">cubic-bezier(0.33, 0, 0.67, 1)</code><small id="bezNote">After Effects Easy Ease default</small></div>
+        </div>
+        <div class="row"><label for="infl">Ease influence</label><output id="inflOut">33%</output>
+          <input id="infl" type="range" min="10" max="90" step="1" value="33"></div>
+        <label class="check"><input id="blur" type="checkbox" checked> Motion blur on transitions (180° shutter)</label>
+      </div>
+      <div class="group">
+        <h2>Look</h2>
+        <div class="row"><label for="accent">Accent color</label><input id="accent" type="color" value="#4f8cff"></div>
+        <div class="row"><label for="zoom">Macro zoom</label><output id="zoomOut">2.4×</output>
+          <input id="zoom" type="range" min="1.6" max="3.4" step="0.1" value="2.4"></div>
+        <div class="row"><label for="vig">Vignette and edge blur</label><output id="vigOut">70%</output>
+          <input id="vig" type="range" min="0" max="100" step="1" value="70"></div>
+      </div>
+      <div class="group">
+        <h2>Sound</h2>
+        <div class="row"><label for="sfx">Sound effects</label><output id="sfxOut">90%</output>
+          <input id="sfx" type="range" min="0" max="100" step="1" value="90"></div>
+        <div class="row"><label for="bed">Beat bed</label><output id="bedOut">60%</output>
+          <input id="bed" type="range" min="0" max="100" step="1" value="60"></div>
+        <p class="note">Every hit lands on the 120 BPM grid. Sound starts when you press Play.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const W = 1080, H = 1920, DUR = 36, TD = 0.4;
+const RENDER = /[?&]render=1/.test(location.search);
+const S = RENDER ? 1 : 2 / 3;
+const SANS = 'Inter, "Helvetica Neue", Arial, sans-serif';
+const MONO = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace';
+const P = { accent: '#4f8cff', infl: 1 / 3, zoom: 2.4, vig: 0.7, blur: true, sfx: 0.9, bed: 0.6 };
+let AR = [79, 140, 255];
+
+const stage = document.getElementById('stage');
+if (RENDER) document.getElementById('wrap').classList.add('render');
+stage.width = Math.round(W * S); stage.height = Math.round(H * S);
+const m = stage.getContext('2d');
+const mk = () => { const c = document.createElement('canvas'); c.width = stage.width; c.height = stage.height; return { cv: c, c: c.getContext('2d') }; };
+const L0 = mk(), L1 = mk(), ACC = mk(), TMP = mk();
+const fx = { vig: 0.35, dof: 0 };
+
+/* ---------- math ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+function bezY(x1, y1, x2, y2, x) {
+  if (x <= 0) return 0; if (x >= 1) return 1;
+  let lo = 0, hi = 1, u = x;
+  for (let i = 0; i < 22; i++) { u = (lo + hi) / 2; const v = 1 - u; const bx = 3 * u * v * v * x1 + 3 * u * u * v * x2 + u * u * u; if (bx < x) lo = u; else hi = u; }
+  const v = 1 - u; return 3 * u * v * v * y1 + 3 * u * u * v * y2 + u * u * u;
+}
+// After Effects Easy Ease: zero speed at both keyframes, equal influence on each side.
+const ee = p => bezY(P.infl, 0, 1 - P.infl, 1, p);
+const tw = (t, a, b) => ee(clamp((t - a) / (b - a)));
+const bell = x => { x = clamp(x, -1, 1); return Math.pow(Math.cos(x * Math.PI / 2), 2); };
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+/* ---------- draw helpers ---------- */
+const ac = (a = 1) => `rgba(${AR[0]},${AR[1]},${AR[2]},${a})`;
+const wh = (a = 1) => `rgba(236,241,250,${a})`;
+function T(c, s, x, y, size, wt, col, o = {}) {
+  c.font = `${wt} ${size}px ${o.mono ? MONO : SANS}`; c.fillStyle = col;
+  c.textAlign = o.align || 'left'; c.textBaseline = 'alphabetic';
+  c.letterSpacing = (o.ls || 0) + 'px'; c.fillText(s, x, y); c.letterSpacing = '0px';
+}
+function card(c, x, y, w, h, r = 36) {
+  c.save(); c.shadowColor = 'rgba(0,0,0,0.6)'; c.shadowBlur = 70 * S; c.shadowOffsetY = 26 * S;
+  c.beginPath(); c.roundRect(x, y, w, h, r); c.fillStyle = 'rgba(15,19,28,0.94)'; c.fill(); c.restore();
+  const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, 'rgba(255,255,255,0.075)'); g.addColorStop(0.45, 'rgba(255,255,255,0)');
+  c.beginPath(); c.roundRect(x, y, w, h, r); c.fillStyle = g; c.fill();
+  c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.12)'; c.stroke();
+}
+function pill(c, x, y, label) {
+  c.font = `500 22px ${MONO}`; c.letterSpacing = '3px'; const w = c.measureText(label).width + 74; c.letterSpacing = '0px';
+  c.beginPath(); c.roundRect(x, y, w, 52, 26); c.fillStyle = ac(0.15); c.fill(); c.lineWidth = 1.5; c.strokeStyle = ac(0.55); c.stroke();
+  c.beginPath(); c.arc(x + 28, y + 26, 6, 0, 7); c.fillStyle = ac(1); c.fill();
+  T(c, label, x + 46, y + 34, 22, 500, wh(0.95), { mono: 1, ls: 3 });
+}
+function tag(c, n, label, a) {
+  if (a <= 0) return; c.save(); c.globalAlpha *= a;
+  c.fillStyle = ac(1); c.fillRect(72, 196, 28, 3);
+  T(c, n, 114, 206, 24, 500, ac(1), { mono: 1, ls: 2 });
+  T(c, label, 164, 206, 24, 500, wh(0.62), { mono: 1, ls: 3 }); c.restore();
+}
+function flare(c, x, y, k, size = 1) {
+  if (k <= 0.003) return;
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const r = 360 * size; let g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, `rgba(255,255,255,${0.95 * k})`); g.addColorStop(0.07, `rgba(255,255,255,${0.5 * k})`);
+  g.addColorStop(0.3, ac(0.2 * k)); g.addColorStop(1, ac(0));
+  c.fillStyle = g; c.fillRect(x - r, y - r, 2 * r, 2 * r);
+  for (const [sx, sy, a] of [[1800 * size, 9, 0.95], [1150 * size, 28, 0.32]]) {
+    c.save(); c.translate(x, y); c.scale(sx / 100, sy / 100);
+    g = c.createRadialGradient(0, 0, 0, 0, 0, 100);
+    g.addColorStop(0, `rgba(255,255,255,${a * k})`); g.addColorStop(0.25, ac(a * 0.6 * k)); g.addColorStop(1, ac(0));
+    c.fillStyle = g; c.fillRect(-100, -100, 200, 200); c.restore();
+  }
+  for (const [f, rad, a] of [[0.35, 46, 0.11], [0.7, 96, 0.06], [1.25, 30, 0.13], [1.6, 140, 0.05]]) {
+    const gx = x + (W / 2 - x) * f * 2, gy = y + (H / 2 - y) * f * 2;
+    g = c.createRadialGradient(gx, gy, 0, gx, gy, rad);
+    g.addColorStop(0, ac(0)); g.addColorStop(0.72, ac(a * k)); g.addColorStop(1, ac(0));
+    c.fillStyle = g; c.fillRect(gx - rad, gy - rad, rad * 2, rad * 2);
+  }
+  c.restore();
+}
+function trimPath(c, pts, p) {
+  const n = (pts.length - 1) * clamp(p); const k = Math.floor(n), f = n - k;
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i <= k; i++) c.lineTo(pts[i][0], pts[i][1]);
+  let end = pts[k];
+  if (k < pts.length - 1) { end = [lerp(pts[k][0], pts[k + 1][0], f), lerp(pts[k][1], pts[k + 1][1], f)]; c.lineTo(end[0], end[1]); }
+  const prev = pts[Math.max(0, (f > 0.001 || k === 0) ? k : k - 1)];
+  return { end, ang: Math.atan2(end[1] - prev[1], end[0] - prev[0]) };
+}
+function arrowHead(c, x, y, ang, size, col) {
+  c.save(); c.translate(x, y); c.rotate(ang); c.beginPath();
+  c.moveTo(size * 0.55, 0); c.lineTo(-size * 0.5, -size * 0.52); c.lineTo(-size * 0.5, size * 0.52); c.closePath();
+  c.fillStyle = col; c.fill(); c.restore();
+}
+const quad = (a, b, d, n = 48) => Array.from({ length: n + 1 }, (_, i) => { const u = i / n, v = 1 - u; return [v * v * a[0] + 2 * u * v * b[0] + u * u * d[0], v * v * a[1] + 2 * u * v * b[1] + u * u * d[1]]; });
+
+/* ---------- background ---------- */
+function bg(c, t) {
+  c.fillStyle = '#06080d'; c.fillRect(0, 0, W, H);
+  const g1x = 250 + Math.sin(t * 0.21) * 140, g1y = 420 + Math.cos(t * 0.17) * 120;
+  let g = c.createRadialGradient(g1x, g1y, 0, g1x, g1y, 900); g.addColorStop(0, ac(0.17)); g.addColorStop(1, ac(0));
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const g2x = 880 + Math.cos(t * 0.19) * 120, g2y = 1560 + Math.sin(t * 0.23) * 140;
+  g = c.createRadialGradient(g2x, g2y, 0, g2x, g2y, 820); g.addColorStop(0, ac(0.11)); g.addColorStop(1, ac(0));
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.fillStyle = 'rgba(255,255,255,0.055)';
+  const off = (t * 7) % 60;
+  for (let y = -60 + off; y < H; y += 60) for (let x = 30; x < W; x += 60) c.fillRect(x, y, 2.4, 2.4);
+}
+
+/* ---------- scene 0: wordmark, flare, riser card ---------- */
+function sIntro(c, lt) {
+  const rise = tw(lt, 1.5, 2.0);
+  const gy = lerp(940, 620, rise);
+  const fp = tw(lt, 0.1, 1.5), fX = lerp(-260, W + 260, fp);
+  c.save(); c.beginPath(); c.rect(0, 0, Math.max(0, fX), H); c.clip();
+  const ls = lerp(64, 8, tw(lt, 0.1, 1.7));
+  T(c, 'SMGP', W / 2 + ls / 2, gy, 236, 800, wh(1), { align: 'center', ls });
+  c.restore();
+  const l = tw(lt, 0.9, 1.4); c.fillStyle = ac(1); c.fillRect(W / 2 - 170 * l, gy + 62, 340 * l, 4);
+  const a = tw(lt, 1.0, 1.5);
+  if (a > 0) { c.save(); c.globalAlpha = a; T(c, 'MOTION SYSTEM  /  SAMPLE REEL', W / 2 + 3, gy + 132 + (1 - a) * 16, 26, 500, wh(0.6), { mono: 1, align: 'center', ls: 6 }); c.restore(); }
+  flare(c, fX, gy - 84, Math.pow(Math.sin(Math.PI * fp), 0.8), 1);
+
+  const cy = lerp(H + 60, 960, rise), x = 72, w = 936, h = 520;
+  if (rise > 0) {
+    card(c, x, cy, w, h);
+    const st = i => tw(lt, 1.9 + i * 0.1, 2.3 + i * 0.1);
+    c.save(); c.globalAlpha = st(0); pill(c, x + 56, cy + 56, 'NOW LIVE'); c.restore();
+    c.save(); c.globalAlpha = st(1); T(c, 'Real-time reporting', x + 56, cy + 212 + (1 - st(1)) * 18, 78, 700, wh(1), { ls: -2 }); c.restore();
+    c.save(); c.globalAlpha = st(2);
+    T(c, 'Every number on screen updates', x + 56, cy + 284, 37, 400, wh(0.62));
+    T(c, 'the moment it changes.', x + 56, cy + 336, 37, 400, wh(0.62)); c.restore();
+    const p = tw(lt, 2.2, 3.4);
+    c.save(); c.globalAlpha = st(3);
+    T(c, 'SYNC', x + 56, cy + 420, 22, 500, wh(0.5), { mono: 1, ls: 4 });
+    T(c, String(Math.round(p * 100)).padStart(3, ' ') + '%', x + w - 56, cy + 420, 22, 500, wh(0.9), { mono: 1, align: 'right' });
+    c.beginPath(); c.roundRect(x + 56, cy + 446, w - 112, 8, 4); c.fillStyle = wh(0.1); c.fill();
+    c.beginPath(); c.roundRect(x + 56, cy + 446, Math.max(8, (w - 112) * p), 8, 4); c.fillStyle = ac(1); c.fill();
+    c.restore();
+  }
+  tag(c, '01', 'RISER CARD', tw(lt, 2.0, 2.4));
+}
+
+/* ---------- scene 1: screen recording, macro zoom highlight, callout + arrow ---------- */
+const WX = 60, WY = 330, WW = 960, WHH = 1260, TX = WX + 70, LH = 62, PY = 712;
+const PARA = 'Every dashboard now updates in real time, so your whole team sees the same numbers the moment they change.';
+const PARA2 = 'Shared views keep everyone on one version of the numbers. Pin a view once and it stays in sync on every device.';
+let wrapCache = null;
+function wrap(c, text, font, maxW) {
+  c.font = font; c.letterSpacing = '0px'; const out = []; let line = '';
+  for (const w of text.split(' ')) { const tryL = line ? line + ' ' + w : w; if (c.measureText(tryL).width > maxW && line) { out.push(line); line = w; } else line = tryL; }
+  if (line) out.push(line); return out.map(s => ({ s, w: c.measureText(s).width }));
+}
+function layout(c) {
+  if (wrapCache) return wrapCache;
+  const f = `400 40px ${SANS}`;
+  const a = wrap(c, PARA, f, 820), b = wrap(c, PARA2, f, 820);
+  wrapCache = { a, b, p2y: PY + a.length * LH + 46 }; return wrapCache;
+}
+function curPos(lt, L) {
+  const P0 = [TX, PY - 14], last = L.a.length - 1;
+  const P2 = [TX + L.a[last].w, PY - 14 + last * LH], P1 = [TX + L.a[0].w + 30, PY - 14];
+  const S0 = [850, 1430];
+  if (lt < 2.0) { const p = tw(lt, 0.5, 1.8); return [lerp(S0[0], P0[0], p), lerp(S0[1], P0[1], p)]; }
+  const u = tw(lt, 2.0, 4.5), v = 1 - u;
+  const x = v * v * P0[0] + 2 * u * v * P1[0] + u * u * P2[0], y = v * v * P0[1] + 2 * u * v * P1[1] + u * u * P2[1];
+  const o = tw(lt, 5.4, 6.6); return [x + 150 * o, y + 640 * o];
+}
+function drawPara(c, L, sel, glow) {
+  if (sel) {
+    const li = clamp(Math.floor((sel[1] - (PY - 44)) / LH), 0, L.a.length - 1);
+    c.fillStyle = ac(0.5 + 0.3 * glow);
+    if (glow > 0) { c.save(); c.shadowColor = ac(0.9); c.shadowBlur = 40 * glow * S; }
+    for (let i = 0; i <= li; i++) {
+      const w = i < li ? L.a[i].w : clamp(sel[0] - TX, 0, L.a[i].w);
+      if (w > 0.5) { c.beginPath(); c.roundRect(TX - 5, PY - 45 + i * LH, w + 10, 58, 5); c.fill(); }
+    }
+    if (glow > 0) c.restore();
+  }
+  L.a.forEach((ln, i) => T(c, ln.s, TX, PY + i * LH, 40, 400, wh(0.94)));
+}
+function drawCursor(c, x, y, ibeam, down) {
+  c.save(); c.translate(x, y); c.shadowColor = 'rgba(0,0,0,0.6)'; c.shadowBlur = 10 * S; c.shadowOffsetY = 3 * S;
+  if (ibeam) {
+    c.lineCap = 'round'; c.strokeStyle = 'rgba(6,8,13,0.9)'; c.lineWidth = 7;
+    const p = () => { c.beginPath(); c.moveTo(0, -22); c.lineTo(0, 22); c.moveTo(-7, -24); c.lineTo(-2, -22); c.moveTo(7, -24); c.lineTo(2, -22); c.moveTo(-7, 24); c.lineTo(-2, 22); c.moveTo(7, 24); c.lineTo(2, 22); };
+    p(); c.stroke(); c.shadowColor = 'transparent'; c.strokeStyle = '#fff'; c.lineWidth = 3; p(); c.stroke();
+  } else {
+    const k = down ? 1.18 : 1.3; c.scale(k, k); c.beginPath();
+    c.moveTo(0, 0); c.lineTo(0, 34); c.lineTo(8, 27); c.lineTo(14, 40); c.lineTo(19.5, 37.5); c.lineTo(13.5, 25); c.lineTo(24, 25); c.closePath();
+    c.fillStyle = '#0a0c11'; c.fill(); c.shadowColor = 'transparent'; c.lineWidth = 2.6; c.lineJoin = 'round'; c.strokeStyle = '#fff'; c.stroke();
+  }
+  c.restore();
+}
+function sScreen(c, lt) {
+  const L = layout(c), Z = P.zoom;
+  const a = tw(lt, 1.0, 2.0), b = tw(lt, 5.0, 5.14), d = tw(lt, 6.0, 7.0);
+  const zoom = lerp(lerp(1, Z, a) * (1 + 0.1 * b), 1, d), k = a * (1 - d);
+  const cu = curPos(lt, L), lag = curPos(lt - 0.14, L);
+  const camx = lerp(W / 2, lag[0] + 30, k), camy = lerp(H / 2, lag[1] + 16, k);
+  fx.dof = Math.max(fx.dof, k * 12 * P.vig); fx.vig = Math.max(fx.vig, 0.35 + k * 0.6 * P.vig);
+
+  c.save(); c.translate(W / 2, H / 2); c.scale(zoom, zoom); c.translate(-camx, -camy);
+  card(c, WX, WY, WW, WHH, 30);
+  c.save(); c.beginPath(); c.roundRect(WX, WY, WW, WHH, 30); c.clip();
+  c.fillStyle = 'rgba(255,255,255,0.035)'; c.fillRect(WX, WY, WW, 88);
+  c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(WX, WY + 88, WW, 1.5);
+  ['#ff5f57', '#febc2e', '#28c840'].forEach((col, i) => { c.beginPath(); c.arc(WX + 46 + i * 34, WY + 44, 10, 0, 7); c.fillStyle = col; c.globalAlpha = 0.85; c.fill(); c.globalAlpha = 1; });
+  c.beginPath(); c.roundRect(WX + WW / 2 - 210, WY + 20, 420, 48, 24); c.fillStyle = 'rgba(255,255,255,0.06)'; c.fill();
+  T(c, 'SMGP  /  Release notes', WX + WW / 2, WY + 52, 22, 500, wh(0.6), { mono: 1, align: 'center' });
+  T(c, 'RELEASE NOTES  ·  SAMPLE COPY', TX, 506, 22, 500, ac(1), { mono: 1, ls: 4 });
+  T(c, 'What’s new this week', TX, 610, 66, 700, wh(1), { ls: -1.5 });
+  const selOn = lt >= 2.0, glow = bell((lt - 5.07) / 0.5) * (lt > 4.6 ? 1 : 0);
+  drawPara(c, L, selOn ? curPos(Math.min(lt, 4.5), L) : null, glow);
+  L.b.forEach((ln, i) => T(c, ln.s, TX, L.p2y + i * LH, 40, 400, wh(0.4)));
+  const by = L.p2y + L.b.length * LH + 10;
+  c.beginPath(); c.roundRect(TX, by, 820, 330, 20); c.fillStyle = 'rgba(255,255,255,0.04)'; c.fill(); c.lineWidth = 1.5; c.strokeStyle = 'rgba(255,255,255,0.07)'; c.stroke();
+  [0.3, 0.46, 0.38, 0.62, 0.55, 0.8, 0.72, 0.94].forEach((v, i) => { c.beginPath(); c.roundRect(TX + 50 + i * 92, by + 290 - v * 230, 54, v * 230, 8); c.fillStyle = i === 7 ? ac(0.75) : wh(0.1); c.fill(); });
+  for (let i = 0; i < 3; i++) { c.beginPath(); c.roundRect(TX, by + 380 + i * 44, [760, 820, 540][i], 18, 9); c.fillStyle = wh(0.07); c.fill(); }
+  const dim = tw(lt, 6.6, 7.2);
+  if (dim > 0) { c.fillStyle = `rgba(5,7,12,${0.62 * dim})`; c.fillRect(WX, WY, WW, WHH); drawPara(c, L, curPos(4.5, L), 0); }
+  c.restore();
+
+  // click ripples at mouse down / up
+  for (const [t0, col] of [[2.0, ac], [4.5, wh]]) {
+    const r = (lt - t0) / 0.45;
+    if (r > 0 && r < 1) { const pp = curPos(t0, L); c.beginPath(); c.arc(pp[0], pp[1], 6 + 34 * ee(r), 0, 7); c.lineWidth = 3; c.strokeStyle = col(0.9 * (1 - r)); c.stroke(); }
+  }
+
+  // callout card, then arrow from the card to the highlighted line
+  const cp = tw(lt, 7.1, 7.5);
+  if (cp > 0) {
+    const cx = 120, cyy = 1090, cw = 840, ch = 340, sc = lerp(0.88, 1, cp);
+    c.save(); c.globalAlpha = cp; c.translate(cx + cw / 2, cyy + ch / 2); c.scale(sc, sc); c.translate(-(cx + cw / 2), -(cyy + ch / 2));
+    card(c, cx, cyy, cw, ch, 32);
+    c.beginPath(); c.roundRect(cx, cyy, cw, ch, 32); c.lineWidth = 2; c.strokeStyle = ac(0.6); c.stroke();
+    pill(c, cx + 52, cyy + 48, 'KEY UPDATE');
+    T(c, 'Live data, zero refresh', cx + 52, cyy + 190, 62, 700, wh(1), { ls: -1.5 });
+    T(c, 'The callout pins itself to the line', cx + 52, cyy + 252, 34, 400, wh(0.62));
+    T(c, 'you highlight.', cx + 52, cyy + 298, 34, 400, wh(0.62));
+    c.restore();
+    const ap = tw(lt, 7.5, 8.0);
+    if (ap > 0) {
+      const last = L.a.length - 1, end = [Math.min(TX + L.a[last].w + 40, 900), PY + last * LH - 14];
+      const pts = quad([880, 1090], [1010, 880], end);
+      c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = 7; c.strokeStyle = ac(1); c.shadowColor = ac(0.8); c.shadowBlur = 22 * S;
+      const r = trimPath(c, pts, ap * 0.94); c.stroke(); arrowHead(c, r.end[0], r.end[1], r.ang, 34, ac(1)); c.restore();
+    }
+  }
+  const down = lt >= 2.0 && lt < 4.5;
+  drawCursor(c, cu[0], cu[1], lt > 1.7 && lt < 5.5, down);
+  c.restore();
+  const t2 = tw(lt, 7.1, 7.5);
+  tag(c, '02', 'MACRO ZOOM HIGHLIGHT', tw(lt, 0, 0.4) * (1 - t2));
+  tag(c, '03', 'CALLOUT + ARROW', t2);
+}
+
+/* ---------- scene 2: lower third ---------- */
+const BOKEH = (() => { const R = rng(31); return Array.from({ length: 16 }, () => ({ x: R() * W, y: 200 + R() * 1200, r: 70 + R() * 190, a: 0.05 + R() * 0.12, s: 0.3 + R() * 0.55, ph: R() * 7, acc: R() < 0.6 })); })();
+function sLower(c, lt) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const b of BOKEH) {
+    const x = b.x + Math.sin(lt * b.s * 0.5 + b.ph) * 46, y = b.y + Math.cos(lt * b.s * 0.4 + b.ph) * 34;
+    const g = c.createRadialGradient(x, y, b.r * 0.55, x, y, b.r);
+    const col = b.acc ? ac : (a => wh(a * 0.55)); g.addColorStop(0, col(b.a)); g.addColorStop(0.86, col(b.a * 1.25)); g.addColorStop(1, col(0));
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, b.r, 0, 7); c.fill();
+  }
+  c.restore();
+  c.strokeStyle = wh(0.28); c.lineWidth = 3; const q = 54;
+  for (const [x, y, dx, dy] of [[150, 420, 1, 1], [930, 420, -1, 1], [150, 1120, 1, -1], [930, 1120, -1, -1]]) { c.beginPath(); c.moveTo(x + dx * q, y); c.lineTo(x, y); c.lineTo(x, y + dy * q); c.stroke(); }
+  T(c, 'A-ROLL PLACEHOLDER', W / 2 + 3, 780, 24, 500, wh(0.34), { mono: 1, align: 'center', ls: 6 });
+
+  const po = tw(lt, 3.0, 3.4), bar = tw(lt, 0, 0.3) * (1 - tw(lt, 3.25, 3.55));
+  const p1 = tw(lt, 0.1, 0.5) * (1 - po), p2 = tw(lt, 0.5, 1.0);
+  const x = 72, y = 1290, hh = 172, pw = 560 * p1;
+  c.fillStyle = ac(1); c.fillRect(x, y + hh / 2 - hh / 2 * bar, 9, hh * bar);
+  if (pw > 1) {
+    c.save(); c.beginPath(); c.roundRect(x + 22, y, pw, hh, [0, 22, 22, 0]); c.clip();
+    c.fillStyle = 'rgba(10,13,20,0.82)'; c.fillRect(x + 22, y, 560, hh);
+    const g = c.createLinearGradient(x + 22, 0, x + 582, 0); g.addColorStop(0, ac(0.2)); g.addColorStop(0.6, ac(0)); c.fillStyle = g; c.fillRect(x + 22, y, 560, hh);
+    T(c, 'Lucas', x + 62 - (1 - p1) * 70, y + 96, 92, 700, wh(1), { ls: -2.5 });
+    c.globalAlpha = p2; T(c, 'SMGP', x + 66 - (1 - p2) * 24, y + 142, 28, 500, ac(1), { mono: 1, ls: 9 });
+    c.restore();
+  }
+  tag(c, '04', 'LOWER THIRD', tw(lt, 0, 0.4));
+}
+
+/* ---------- scene 3: growth graph ---------- */
+const CURVE = (() => {
+  const v = [0.08, 0.14, 0.12, 0.24, 0.32, 0.47, 0.69, 1], pts = v.map((y, i) => [116 + i * (848 / 7), 1090 - y * 380]), out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    for (let j = 0; j < 20; j++) { const u = j / 20, u2 = u * u, u3 = u2 * u;
+      out.push([0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * u + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * u2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * u3),
+                0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * u3)]); }
+  }
+  out.push(pts[pts.length - 1]); return out;
+})();
+function sGraph(c, lt) {
+  const pu = tw(lt, 5.8, 6.0), sc = 1 + 0.05 * pu;
+  c.save(); c.translate(W / 2, 1460); c.scale(sc, sc); c.translate(-W / 2, -1460);
+  card(c, 60, 280, 960, 900);
+  T(c, 'WEEKLY ACTIVE USERS  ·  SAMPLE DATA', 116, 366, 23, 500, wh(0.5), { mono: 1, ls: 3.5 });
+  const p = tw(lt, 0.5, 2.5), land = bell((lt - 2.5) / 0.5) * (lt > 2.2 ? 1 : 0);
+  c.save(); if (land > 0) { c.shadowColor = ac(0.9); c.shadowBlur = 50 * land * S; }
+  T(c, '+' + Math.round(148 * p) + '%', 104, 574, 196, 800, wh(1), { mono: 1, ls: -8 }); c.restore();
+  const bp = tw(lt, 2.5, 2.9);
+  c.beginPath(); c.arc(884, 500, 60 + 8 * land, 0, 7); c.fillStyle = ac(0.16); c.fill(); c.lineWidth = 2; c.strokeStyle = ac(0.6); c.stroke();
+  if (bp > 0) { c.save(); c.lineCap = 'round'; c.lineWidth = 8; c.strokeStyle = ac(1); const r = trimPath(c, [[860, 526], [906, 476]], bp * 0.9); c.stroke(); arrowHead(c, r.end[0], r.end[1], r.ang, 30, ac(1)); c.restore(); }
+  for (let i = 0; i < 4; i++) { c.fillStyle = wh(0.07); c.fillRect(116, 710 + i * 126.6, 848, 1.5); }
+  ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'].forEach((s, i) => T(c, s, 116 + i * (848 / 7), 1138, 20, 500, wh(0.36), { mono: 1, align: 'center' }));
+  if (p > 0) {
+    const r = trimPath(c, CURVE, p);
+    c.save(); c.lineTo(r.end[0], 1090); c.lineTo(116, 1090); c.closePath();
+    const g = c.createLinearGradient(0, 700, 0, 1090); g.addColorStop(0, ac(0.36)); g.addColorStop(1, ac(0)); c.fillStyle = g; c.fill(); c.restore();
+    c.save(); c.lineWidth = 7; c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = ac(1); c.shadowColor = ac(0.9); c.shadowBlur = 26 * S;
+    const e = trimPath(c, CURVE, p); c.stroke(); c.restore();
+    c.beginPath(); c.arc(e.end[0], e.end[1], 22 + 14 * land, 0, 7); c.fillStyle = ac(0.25); c.fill();
+    c.beginPath(); c.arc(e.end[0], e.end[1], 11, 0, 7); c.fillStyle = '#fff'; c.fill();
+  }
+  const rise = tw(lt, 3.5, 4.0), y = lerp(H + 60, 1230, rise);
+  if (rise > 0) {
+    card(c, 60, y, 960, 470);
+    T(c, 'QUARTERLY GROWTH  ·  SAMPLE DATA', 116, y + 74, 23, 500, wh(0.5), { mono: 1, ls: 3.5 });
+    const vals = [12, 31, 64, 148], base = y + 394;
+    vals.forEach((v, i) => {
+      const b = tw(lt, 4.0 + i * 0.25, 4.5 + i * 0.25), hh = Math.max(4, v / 148 * 230 * b), x = 126 + i * 216, hot = i === 3;
+      c.save(); if (hot && pu > 0) { c.shadowColor = ac(0.9); c.shadowBlur = 46 * pu * S; }
+      c.beginPath(); c.roundRect(x, base - hh, 150, hh, [10, 10, 0, 0]); c.fillStyle = hot ? ac(1) : wh(0.2); c.fill(); c.restore();
+      c.save(); c.globalAlpha = clamp(b * 3); T(c, '+' + Math.round(v * b) + '%', x + 75, base - hh - 18, 30, 800, hot ? wh(1) : wh(0.7), { mono: 1, align: 'center' }); c.restore();
+      T(c, 'Q' + (i + 1), x + 75, base + 40, 22, 500, wh(0.4), { mono: 1, align: 'center' });
+    });
+    c.fillStyle = wh(0.12); c.fillRect(116, base, 848, 1.5);
+  }
+  c.restore();
+  tag(c, '05', 'GROWTH GRAPH', tw(lt, 0, 0.4));
+}
+
+/* ---------- scene 4: donut chart ---------- */
+function sDonut(c, lt) {
+  const segs = [['Organic', 46], ['Referral', 27], ['Paid', 18], ['Direct', 9]];
+  const cols = [ac(1), ac(0.5), wh(0.55), wh(0.2)];
+  const pu = tw(lt, 3.86, 4.0), sc = 1 + 0.05 * pu, cx = 540, cy = 690, R = 280;
+  c.save(); c.translate(cx, cy); c.scale(sc, sc); c.translate(-cx, -cy);
+  T(c, 'TRAFFIC BY CHANNEL  ·  SAMPLE DATA', W / 2 + 2, 300, 23, 500, wh(0.5), { mono: 1, align: 'center', ls: 3.5 });
+  c.lineWidth = 92; c.strokeStyle = wh(0.05); c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+  const p = tw(lt, 0.3, 2.3), cur = p * 100; let acc = 0; const gap = 0.7;
+  segs.forEach(([, v], i) => {
+    const a0 = acc + gap / 2, a1 = Math.min(acc + v - gap / 2, cur); acc += v;
+    if (a1 <= a0) return;
+    const A = x => (x / 100) * Math.PI * 2 - Math.PI / 2, mid = A(acc - v / 2), off = i === 0 ? 20 * pu : 0;
+    c.save(); c.translate(Math.cos(mid) * off, Math.sin(mid) * off);
+    if (i === 0) { c.shadowColor = ac(0.8); c.shadowBlur = (18 + 40 * pu) * S; }
+    c.beginPath(); c.arc(cx, cy, R, A(a0), A(a1)); c.lineWidth = 92; c.strokeStyle = cols[i]; c.stroke(); c.restore();
+  });
+  T(c, Math.round(46 * clamp(cur / 46)) + '%', cx, cy + 34, 138, 800, wh(1), { mono: 1, align: 'center', ls: -5 });
+  T(c, 'ORGANIC', cx + 4, cy + 96, 25, 500, ac(1), { mono: 1, align: 'center', ls: 7 });
+  c.restore();
+  card(c, 72, 1130, 936, 500);
+  segs.forEach(([name, v], i) => {
+    const r = tw(lt, 0.7 + i * 0.5, 1.0 + i * 0.5), y = 1130 + 86 + i * 112;
+    if (i > 0) { c.fillStyle = wh(0.07); c.fillRect(128, y - 62, 824, 1.5); }
+    c.save(); c.globalAlpha = r; c.translate((1 - r) * 46, 0);
+    c.beginPath(); c.roundRect(128, y - 24, 30, 30, 8); c.fillStyle = cols[i]; c.fill();
+    T(c, name, 186, y + 4, 42, 600, wh(i === 0 ? 1 : 0.82), { ls: -0.5 });
+    T(c, Math.round(v * r) + '%', 952, y + 5, 42, 800, wh(i === 0 ? 1 : 0.7), { mono: 1, align: 'right' });
+    c.restore();
+  });
+  tag(c, '06', 'DONUT CHART', tw(lt, 0, 0.4));
+}
+
+/* ---------- scene 5: outro ---------- */
+function sOutro(c, lt) {
+  const gy = 930, fp = tw(lt, 0.2, 1.6), fX = lerp(W + 260, -260, fp);
+  c.save(); c.beginPath(); c.rect(fX, 0, W + 600, H); c.clip();
+  T(c, 'SMGP', W / 2 + 4, gy, 236, 800, wh(1), { align: 'center', ls: 8 }); c.restore();
+  const l = tw(lt, 1.0, 1.5); c.fillStyle = ac(1); c.fillRect(W / 2 - 170 * l, gy + 62, 340 * l, 4);
+  const a = tw(lt, 1.2, 1.7);
+  if (a > 0) { c.save(); c.globalAlpha = a; T(c, 'MOTION SYSTEM  /  BUILT IN CODE', W / 2 + 3, gy + 132 + (1 - a) * 16, 26, 500, wh(0.6), { mono: 1, align: 'center', ls: 6 }); c.restore(); }
+  flare(c, fX, gy - 84, Math.pow(Math.sin(Math.PI * fp), 0.8), 1);
+  flare(c, W / 2, gy + 64, 0.16 * l * (0.8 + 0.2 * Math.sin(lt * 5)), 0.5);
+}
+
+/* ---------- timeline + compositor ---------- */
+const SC = [
+  { s: 0, e: 4, fn: sIntro, out: 'pushUp', name: 'Riser card' },
+  { s: 4, e: 14, fn: sScreen, out: 'zoom', name: 'Macro zoom' },
+  { s: 14, e: 18, fn: sLower, out: 'pushLeft', name: 'Lower third' },
+  { s: 18, e: 26, fn: sGraph, out: 'zoom', name: 'Growth graph' },
+  { s: 26, e: 32, fn: sDonut, out: 'zoomOut', name: 'Donut chart' },
+  { s: 32, e: 36, fn: sOutro, name: 'Outro' }
+];
+const JUMPS = [['Riser card', 0], ['Macro zoom', 4.6], ['Callout + arrow', 10.6], ['Lower third', 13.6], ['Growth graph', 17.6], ['Donut chart', 25.6], ['Outro', 31.6]];
+function drawScene(L, sc, t) { L.c.setTransform(1, 0, 0, 1, 0, 0); L.c.clearRect(0, 0, L.cv.width, L.cv.height); L.c.setTransform(S, 0, 0, S, 0, 0); sc.fn(L.c, t - sc.s); }
+function xf(type, p, isB) {
+  switch (type) {
+    case 'pushUp': return isB ? { dy: H * (1 - p) } : { dy: -H * p };
+    case 'pushLeft': return isB ? { dx: W * (1 - p) } : { dx: -W * p };
+    case 'zoom': return isB ? { sc: 0.55 + 0.45 * p, a: clamp(p * 1.6 - 0.3) } : { sc: 1 + 1.5 * p, a: clamp(1 - p * 1.6) };
+    default: return isB ? { sc: 1.7 - 0.7 * p, a: clamp(p * 1.6 - 0.3) } : { sc: 1 - 0.45 * p, a: clamp(1 - p * 1.6) };
+  }
+}
+function put(c, L, x, w) {
+  const sc = x.sc || 1, a = x.a === undefined ? 1 : x.a; if (a <= 0) return;
+  c.save(); c.globalAlpha = w * a;
+  c.setTransform(sc, 0, 0, sc, (L.cv.width / 2) * (1 - sc) + (x.dx || 0) * S, (L.cv.height / 2) * (1 - sc) + (x.dy || 0) * S);
+  c.drawImage(L.cv, 0, 0); c.restore();
+}
+const grain = (() => { const g = document.createElement('canvas'); g.width = g.height = 256; const x = g.getContext('2d'), d = x.createImageData(256, 256), R = rng(99);
+  for (let i = 0; i < d.data.length; i += 4) { const v = R() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 20; } x.putImageData(d, 0, 0); return g; })();
+
+function frame(t) {
+  t = clamp(t, 0, DUR - 1e-4); fx.vig = 0.35; fx.dof = 0;
+  m.setTransform(S, 0, 0, S, 0, 0); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over'; bg(m, t);
+  let i = SC.findIndex(s => t >= s.s && t < s.e); if (i < 0) i = SC.length - 1;
+  const A = SC[i], B = SC[i + 1];
+  m.setTransform(1, 0, 0, 1, 0, 0);
+  if (B && t >= A.e - TD) {
+    drawScene(L0, A, t); drawScene(L1, B, t);
+    // 180 degree shutter: average sub-frame samples of the full opaque frame (keeps colour exact)
+    const n = P.blur ? (RENDER ? 16 : 8) : 1, a = ACC.c, x = TMP.c;
+    a.setTransform(1, 0, 0, 1, 0, 0); a.globalAlpha = 1; a.globalCompositeOperation = 'copy'; a.drawImage(stage, 0, 0);
+    for (let k = 0; k < n; k++) {
+      const p = ee(clamp((t - (1 / 60) * (k / n) - (A.e - TD)) / TD));
+      x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.filter = 'none'; x.globalCompositeOperation = 'copy'; x.drawImage(ACC.cv, 0, 0); x.globalCompositeOperation = 'source-over';
+      put(x, L0, xf(A.out, p, false), 1); put(x, L1, xf(A.out, p, true), 1);
+      m.globalAlpha = 1 / (k + 1); m.drawImage(TMP.cv, 0, 0);
+    }
+    m.globalAlpha = 1;
+  } else { drawScene(L0, A, t); m.drawImage(L0.cv, 0, 0); }
+  m.setTransform(S, 0, 0, S, 0, 0);
+  for (const b of [14, 26, 32]) flare(m, W / 2, H / 2, 0.85 * bell((t - b) / 0.3), 1.25);
+  // edge blur (macro lens), vignette, grain, fades
+  m.setTransform(1, 0, 0, 1, 0, 0); const cw = stage.width, ch = stage.height;
+  if (fx.dof > 0.05) {
+    const x = TMP.c; x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, cw, ch);
+    x.filter = `blur(${(fx.dof * S).toFixed(2)}px)`; x.drawImage(stage, 0, 0); x.filter = 'none';
+    x.globalCompositeOperation = 'destination-in';
+    const g = x.createRadialGradient(cw / 2, ch / 2, cw * 0.3, cw / 2, ch / 2, cw * 0.78); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+    x.fillStyle = g; x.fillRect(0, 0, cw, ch); m.drawImage(TMP.cv, 0, 0);
+  }
+  let g = m.createRadialGradient(cw / 2, ch / 2, cw * 0.34, cw / 2, ch / 2, ch * 0.6);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${Math.min(0.96, fx.vig)})`); m.fillStyle = g; m.fillRect(0, 0, cw, ch);
+  const f = Math.floor(t * 30); m.save(); m.translate(-((f * 97) % 256), -((f * 57) % 256)); m.fillStyle = m.createPattern(grain, 'repeat'); m.fillRect(0, 0, cw + 256, ch + 256); m.restore();
+  const fade = Math.max(1 - tw(t, 0, 0.3), tw(t, 35.3, 36));
+  if (fade > 0) { m.fillStyle = `rgba(0,0,0,${fade})`; m.fillRect(0, 0, cw, ch); }
+}
+
+/* ---------- sound: every cue is synthesized and placed on the 0.5 s beat grid ---------- */
+function schedule(oc, which) {
+  const sr = oc.sampleRate, R = rng(which === 'sfx' ? 7 : 11);
+  const nb = oc.createBuffer(1, sr * 2, sr); { const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = R() * 2 - 1; }
+  const ir = oc.createBuffer(2, Math.floor(sr * 2.2), sr);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (R() * 2 - 1) * Math.pow(1 - i / d.length, 3.4); }
+  const comp = oc.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 3; comp.attack.value = 0.004; comp.release.value = 0.18; comp.connect(oc.destination);
+  const conv = oc.createConvolver(); conv.buffer = ir; const wet = oc.createGain(); wet.gain.value = 0.5; conv.connect(wet); wet.connect(comp);
+  const out = (node, rv = 0.25, pan = 0) => { let n = node; if (pan) { const pn = oc.createStereoPanner(); pn.pan.value = pan; n.connect(pn); n = pn; } n.connect(comp); if (rv) { const s = oc.createGain(); s.gain.value = rv; n.connect(s); s.connect(conv); } };
+  const T0 = x => Math.max(0, x);
+  const noise = (t0, t1) => { const s = oc.createBufferSource(); s.buffer = nb; s.loop = true; s.start(T0(t0), R() * 1.5); s.stop(t1); return s; };
+  const osc = (type, t0, t1) => { const o = oc.createOscillator(); o.type = type; o.start(T0(t0)); o.stop(t1); return o; };
+  const env = (pts) => { const g = oc.createGain(); g.gain.setValueAtTime(pts[0][1], T0(pts[0][0])); for (let i = 1; i < pts.length; i++) g.gain.linearRampToValueAtTime(pts[i][1], T0(pts[i][0])); return g; };
+
+  const whoosh = (tp, dur, f0, f1, g, pan = 0) => { const t0 = tp - dur * 0.65, t1 = tp + dur * 0.35, n = noise(t0, t1 + 0.05);
+    const f = oc.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.9; f.frequency.setValueAtTime(f0, T0(t0)); f.frequency.exponentialRampToValueAtTime(f1, t1);
+    const e = env([[t0, 0], [tp, g], [t1, 0]]); n.connect(f); f.connect(e); out(e, 0.35, pan); };
+  const impact = (t, g) => { const o = osc('sine', t, t + 0.7); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(36, t + 0.32);
+    const e = oc.createGain(); e.gain.setValueAtTime(g, t); e.gain.exponentialRampToValueAtTime(0.001, t + 0.62); o.connect(e); out(e, 0.2);
+    const n = noise(t, t + 0.12), f = oc.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; const e2 = env([[t, g * 0.7], [t + 0.1, 0]]); n.connect(f); f.connect(e2); out(e2, 0.4); };
+  const click = (t, fr, g) => { const o = osc('triangle', t, t + 0.03); o.frequency.setValueAtTime(fr, t); o.frequency.exponentialRampToValueAtTime(fr * 0.5, t + 0.02);
+    const e = env([[t, g], [t + 0.022, 0]]); o.connect(e); out(e, 0.12);
+    const n = noise(t, t + 0.02), f = oc.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3500; const e2 = env([[t, g * 0.55], [t + 0.012, 0]]); n.connect(f); f.connect(e2); out(e2, 0.12); };
+  const tick = (t, fr, g) => { const o = osc('sine', t, t + 0.12); o.frequency.value = fr; const e = env([[t, 0], [t + 0.003, g], [t + 0.09, 0]]); o.connect(e); out(e, 0.3); };
+  const pop = (t, g) => { const o = osc('sine', t, t + 0.2); o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(680, t + 0.07); const e = env([[t, 0], [t + 0.006, g], [t + 0.15, 0]]); o.connect(e); out(e, 0.3); };
+  const riser = (t0, t1, g) => { const n = noise(t0, t1 + 0.05), f = oc.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4; f.frequency.setValueAtTime(350, T0(t0)); f.frequency.exponentialRampToValueAtTime(6000, t1);
+    const e = oc.createGain(); e.gain.setValueAtTime(0.0005, T0(t0)); e.gain.exponentialRampToValueAtTime(g, t1 - 0.02); e.gain.linearRampToValueAtTime(0, t1 + 0.03); n.connect(f); f.connect(e); out(e, 0.4);
+    const o = osc('sine', t0, t1 + 0.05); o.frequency.setValueAtTime(180, T0(t0)); o.frequency.exponentialRampToValueAtTime(880, t1);
+    const e2 = oc.createGain(); e2.gain.setValueAtTime(0.0005, T0(t0)); e2.gain.exponentialRampToValueAtTime(g * 0.35, t1 - 0.02); e2.gain.linearRampToValueAtTime(0, t1 + 0.03); o.connect(e2); out(e2, 0.3); };
+  const shimmer = (t, dur, g) => { [2093, 2637, 3136, 3951, 4699].forEach((fr, i) => { const o = osc('sine', t, t + dur); o.frequency.setValueAtTime(fr, T0(t)); o.frequency.linearRampToValueAtTime(fr * 1.012, t + dur);
+      const e = env([[t, 0], [t + dur * (0.25 + i * 0.06), g / (i + 2)], [t + dur, 0]]); o.connect(e); out(e, 0.8, (i - 2) * 0.3); });
+    const n = noise(t, t + dur), f = oc.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000; const e = env([[t, 0], [t + dur * 0.4, g * 0.12], [t + dur, 0]]); n.connect(f); f.connect(e); out(e, 0.6); };
+
+  if (which === 'sfx') {
+    shimmer(0.1, 1.7, 0.16); whoosh(1.9, 0.7, 300, 2600, 0.3); impact(2.0, 0.5); tick(3.0, 1320, 0.1); tick(3.5, 1760, 0.12);
+    whoosh(3.9, 0.6, 400, 3200, 0.36); impact(4.0, 0.6);
+    whoosh(5.85, 1.1, 250, 3400, 0.34, -0.3); click(6.0, 1700, 0.5);
+    click(8.5, 2300, 0.42); impact(9.0, 0.7); whoosh(10.5, 1.0, 3000, 300, 0.26, 0.3);
+    pop(11.5, 0.3); whoosh(11.85, 0.5, 900, 4200, 0.16, 0.4); tick(12.0, 1568, 0.2);
+    riser(13.0, 14.0, 0.22); whoosh(13.9, 0.6, 400, 4200, 0.4); impact(14.0, 0.75); shimmer(13.9, 1.0, 0.1);
+    pop(14.5, 0.28); tick(15.0, 1320, 0.16); whoosh(17.3, 0.5, 2400, 500, 0.16);
+    whoosh(17.9, 0.6, 400, 3200, 0.38, -0.4); impact(18.0, 0.65);
+    riser(18.5, 20.5, 0.14); for (let i = 0; i < 8; i++) tick(18.5 + i * 0.25, 880 * Math.pow(2, i / 12), 0.07);
+    impact(20.5, 0.6); shimmer(20.5, 0.9, 0.09); pop(21.0, 0.2);
+    whoosh(21.9, 0.7, 300, 2600, 0.3); impact(22.0, 0.5);
+    [1047, 1175, 1319, 1568].forEach((fr, i) => tick(22.5 + i * 0.25, fr, 0.16)); click(23.25, 2000, 0.25);
+    impact(24.0, 0.8); shimmer(24.0, 0.8, 0.08);
+    riser(25.0, 26.0, 0.22); whoosh(25.9, 0.6, 400, 4200, 0.4); impact(26.0, 0.75); shimmer(25.9, 1.0, 0.1);
+    whoosh(27.3, 2.0, 500, 2400, 0.12); [1047, 1175, 1319, 1568].forEach((fr, i) => tick(27.0 + i * 0.5, fr, 0.15));
+    impact(30.0, 0.8); pop(30.0, 0.25); click(30.0, 1900, 0.3);
+    riser(31.0, 32.0, 0.24); whoosh(31.9, 0.7, 4200, 300, 0.4); impact(32.0, 0.8); shimmer(32.2, 1.8, 0.16); tick(33.5, 1568, 0.1);
+  } else {
+    const master = env([[0, 0], [1.0, 1], [34.3, 1], [36, 0]]); master.connect(comp);
+    const roots = [55, 43.65, 65.41, 49, 55, 43.65, 65.41, 49, 55];
+    const lp = oc.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 620; lp.Q.value = 0.6; lp.connect(master);
+    const rs = oc.createGain(); rs.gain.value = 0.5; lp.connect(rs); rs.connect(conv);
+    roots.forEach((r, i) => { const t0 = i * 4, t1 = t0 + 4;
+      [[r * 2, 0.035, -6], [r * 3, 0.026, 5], [r * 4, 0.02, 9]].forEach(([fr, g, det]) => { const o = osc('sawtooth', t0, t1 + 0.4); o.frequency.value = fr; o.detune.value = det; const e = env([[t0, 0], [t0 + 0.4, g], [t1, g], [t1 + 0.4, 0]]); o.connect(e); e.connect(lp); });
+      const sub = osc('sine', t0, t1 + 0.2); sub.frequency.value = r; const es = env([[t0, 0], [t0 + 0.15, 0.2], [t1, 0.2], [t1 + 0.2, 0]]); sub.connect(es); es.connect(master); });
+    for (let b = 8; b < 68; b++) { const t = b * 0.5;
+      const o = osc('sine', t, t + 0.3); o.frequency.setValueAtTime(105, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14); const e = oc.createGain(); e.gain.setValueAtTime(0.42, t); e.gain.exponentialRampToValueAtTime(0.001, t + 0.26); o.connect(e); e.connect(master);
+      const n = noise(t + 0.25, t + 0.3), f = oc.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000; const eh = env([[t + 0.25, 0.05], [t + 0.29, 0]]); n.connect(f); f.connect(eh); eh.connect(master); }
+  }
+}
+async function renderBus(which) { const oc = new OfflineAudioContext(2, 48000 * DUR, 48000); schedule(oc, which); return oc.startRendering(); }
+
+/* ---------- render hooks (used by the MP4 exporter) ---------- */
+window.__ready = (async () => { try { await Promise.all([`400 40px ${SANS}`, `700 40px ${SANS}`, `800 40px ${SANS}`, `500 20px ${MONO}`, `800 40px ${MONO}`].map(f => document.fonts.load(f))); } catch (e) {} wrapCache = null; })();
+window.__frame = t => { frame(t); return stage.toDataURL('image/png'); };
+window.__audio = async () => {
+  const [a, b] = await Promise.all([renderBus('sfx'), renderBus('bed')]); const n = a.length, pcm = new Int16Array(n * 2);
+  for (let ch = 0; ch < 2; ch++) { const x = a.getChannelData(ch), y = b.getChannelData(ch); for (let i = 0; i < n; i++) pcm[i * 2 + ch] = Math.round(clamp((x[i] * P.sfx + y[i] * P.bed) * 0.55, -1, 1) * 32767); }
+  const u8 = new Uint8Array(pcm.buffer); let s = ''; for (let i = 0; i < u8.length; i += 32768) s += String.fromCharCode.apply(null, u8.subarray(i, i + 32768)); return btoa(s);
+};
+if (RENDER) return;
+
+/* ---------- player ---------- */
+const $ = id => document.getElementById(id);
+let t = 2.9, playing = false, actx = null, bufs = null, nodes = null, ref = 0, usePerf = true, raf = 0;
+const show = () => { frame(t); $('scrub').value = t; $('time').textContent = t.toFixed(2).padStart(5, '0') + ' / 36.00';
+  let on = 0; JUMPS.forEach((j, i) => { if (t >= j[1] - 0.01) on = i; }); [...$('chips').children].forEach((b, i) => b.classList.toggle('on', i === on)); };
+function stopAudio() { if (nodes) { try { nodes.src.forEach(s => s.stop()); } catch (e) {} nodes = null; } }
+function startAudio() {
+  stopAudio(); if (!actx || !bufs) { usePerf = true; ref = performance.now() / 1000 - t; return; }
+  const gs = oc => { const g = actx.createGain(); g.connect(actx.destination); return g; };
+  const g1 = gs(), g2 = gs(); g1.gain.value = P.sfx * 0.55; g2.gain.value = P.bed * 0.55;
+  const src = bufs.map((b, i) => { const s = actx.createBufferSource(); s.buffer = b; s.connect(i ? g2 : g1); s.start(0, t); return s; });
+  nodes = { src, g1, g2 }; usePerf = false; ref = actx.currentTime - t;
+}
+function loop() { if (!playing) return; t = (usePerf ? performance.now() / 1000 : actx.currentTime) - ref; if (t >= DUR) { t = DUR - 0.01; pause(); show(); return; } show(); raf = requestAnimationFrame(loop); }
+async function play() {
+  if (playing) return; if (t >= DUR - 0.05) t = 0;
+  try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') await actx.resume(); if (!bufs) { $('play').textContent = 'Loading'; bufs = await Promise.all([renderBus('sfx'), renderBus('bed')]); } } catch (e) { bufs = null; }
+  playing = true; $('play').textContent = 'Pause'; startAudio(); loop();
+}
+function pause() { playing = false; cancelAnimationFrame(raf); stopAudio(); $('play').textContent = 'Play'; }
+function seek(x) { t = clamp(x, 0, DUR - 0.01); if (playing) startAudio(); show(); }
+$('play').onclick = () => playing ? pause() : play();
+stage.onclick = () => playing ? pause() : play();
+$('restart').onclick = () => { seek(0); play(); };
+$('scrub').oninput = e => seek(+e.target.value);
+JUMPS.forEach(([name, at]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.onclick = () => { seek(at); play(); }; $('chips').appendChild(b); });
+
+function drawCurve() {
+  const cv = $('curve'), c = cv.getContext('2d'), n = cv.width, pad = 18, s = n - pad * 2; c.clearRect(0, 0, n, n);
+  c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 2; c.strokeRect(pad, pad, s, s);
+  c.strokeStyle = 'rgba(255,255,255,0.35)'; c.beginPath(); c.moveTo(pad, pad + s); c.lineTo(pad + s * P.infl, pad + s); c.moveTo(pad + s, pad); c.lineTo(pad + s * (1 - P.infl), pad); c.stroke();
+  c.strokeStyle = P.accent; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath();
+  for (let i = 0; i <= 60; i++) { const x = i / 60, y = ee(x); i ? c.lineTo(pad + x * s, pad + s - y * s) : c.moveTo(pad + x * s, pad + s - y * s); } c.stroke();
+}
+function sync() {
+  const h = P.accent; AR = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); document.documentElement.style.setProperty('--accent', h);
+  const a = P.infl.toFixed(2), b = (1 - P.infl).toFixed(2); $('bez').textContent = `cubic-bezier(${a}, 0, ${b}, 1)`;
+  $('inflOut').textContent = Math.round(P.infl * 100) + '%';
+  $('bezNote').textContent = Math.abs(P.infl - 1 / 3) < 0.006 ? 'After Effects Easy Ease default' : 'Easy Ease with custom influence';
+  $('zoomOut').textContent = P.zoom.toFixed(1) + '×'; $('vigOut').textContent = Math.round(P.vig * 100) + '%';
+  $('sfxOut').textContent = Math.round(P.sfx * 100) + '%'; $('bedOut').textContent = Math.round(P.bed * 100) + '%';
+  if (nodes) { nodes.g1.gain.value = P.sfx * 0.55; nodes.g2.gain.value = P.bed * 0.55; }
+  drawCurve(); if (!playing) show();
+}
+$('infl').oninput = e => { const v = +e.target.value; P.infl = v === 33 ? 1 / 3 : v / 100; sync(); };
+$('blur').onchange = e => { P.blur = e.target.checked; sync(); };
+$('accent').oninput = e => { P.accent = e.target.value; sync(); };
+$('zoom').oninput = e => { P.zoom = +e.target.value; sync(); };
+$('vig').oninput = e => { P.vig = +e.target.value / 100; sync(); };
+$('sfx').oninput = e => { P.sfx = +e.target.value / 100; sync(); };
+$('bed').oninput = e => { P.bed = +e.target.value / 100; sync(); };
+document.addEventListener('keydown', e => { if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') { e.preventDefault(); playing ? pause() : play(); } });
+sync(); window.__ready.then(() => { wrapCache = null; sync(); });
+})();
+</script>
