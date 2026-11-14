@@ -1,0 +1,375 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:IT;font-weight:800;src:url(fonts/inter-tight-latin-800-normal.woff2)}
+@font-face{font-family:IT;font-weight:900;src:url(fonts/inter-tight-latin-900-normal.woff2)}
+@font-face{font-family:IS;font-style:italic;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
+:root{--bg:#FDFBFE;--accent:#E70001}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--bg)}
+#stage{position:absolute;inset:0;overflow:hidden;background:var(--bg)}
+#gl{position:absolute;inset:0;width:1080px;height:1920px}
+.layer{position:absolute;inset:0}
+.txt{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;color:var(--accent)}
+.ln{display:flex;align-items:baseline;justify-content:center;line-height:.9;white-space:nowrap}
+.w{display:inline-block;margin:0 .11em;font-family:IT;font-weight:900;letter-spacing:-.035em;transform-origin:50% 70%}
+.w.sf{font-family:IS;font-style:italic;font-weight:400;letter-spacing:-.02em}
+.card{position:absolute;left:43px;width:994px;border-radius:24px;overflow:hidden;box-shadow:0 30px 80px rgba(20,0,30,.14);background:#ddd}
+.card img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:50% 50%}
+.tag{position:absolute;left:72px;font:800 30px IT;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.tag i{display:inline-block;width:14px;height:14px;border-radius:7px;background:var(--accent);margin-right:14px;vertical-align:2px}
+.call{position:absolute;font:900 46px IT;letter-spacing:-.02em;color:var(--accent);white-space:nowrap}
+.call.sf{font:italic 400 52px IS}
+.dot{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:9px;background:var(--accent);box-shadow:0 0 0 7px rgba(231,0,1,.15)}
+.chip{display:inline-block;font:900 34px IT;color:var(--bg);background:var(--accent);border-radius:10px;padding:6px 14px 4px;letter-spacing:.02em}
+.small{font:800 38px IT;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="gl" width="1080" height="1920"></canvas>
+  <svg width="0" height="0" style="position:absolute"><filter id="hb" x="-50%" y="-10%" width="200%" height="120%"><feGaussianBlur id="hbv" stdDeviation="0 0"/></filter></svg>
+  <svg id="lines" class="layer" width="1080" height="1920"></svg>
+  <div id="dom" class="layer"></div>
+</div>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+const V = new URLSearchParams(location.search).get('v') || 'reel';
+const FPS = 30, FPB = FPS * 60 / 112;            // 112 BPM, ~16.07 frames per beat
+const B = b => Math.round(b * FPB);
+const RED = '#E70001', PINK = '#F2A0A6';
+const cues = [];                                   // sound cues: {f, type}
+
+// ---------- easing / keyframes ----------
+const ease = {
+  lin: t => t, io: t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2,
+  in: t => t*t, out: t => 1 - (1-t)*(1-t), pop: t => 1 - Math.pow(1 - t, 4)
+};
+const clamp = (x, a=0, b=1) => Math.max(a, Math.min(b, x));
+function kf(keys, b) {             // keys: [[beat, value, ease?]...]
+  if (b <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [b1, v1, e] = keys[i], [b0, v0] = keys[i-1];
+    if (b <= b1) return v0 + (v1 - v0) * ease[e || 'lin'](clamp((b - b0) / (b1 - b0)));
+  }
+  return keys[keys.length-1][1];
+}
+const mixHex = (a, b, t) => { const p = h => [1,3,5].map(i => parseInt(h.substr(i,2),16));
+  const A = p(a), C = p(b); return `rgb(${A.map((v,i)=>Math.round(v+(C[i]-v)*t)).join(',')})`; };
+
+// ---------- the edit, written in beats ----------
+// word: [text, beat, sizePx, serif?]
+const W = (w, at, z, sf) => ({ w, at, z, sf: !!sf });
+const REEL = {
+  dur: 49,
+  sections: [
+    { from: 0, to: 4, kind: 'text', top: 640, lines: [[W('No',0,150), W('room',.5,150)], [W('for a',1,80)], [W('table?',2,300,1)]] },
+    { from: 4, to: 8, kind: 'photo', img: 'stowed', top: 640, h: 900,
+      text: { top: 270, lines: [[W('It',4.25,96), W('hangs',4.5,96), W('flat',5,118,1)], [W('on the',5.5,64)], [W('WALL.',6,190)]] } },
+    { from: 8, to: 12, kind: 'photo', img: 'deployed', swipeIn: true, top: 640, h: 900,
+      text: { top: 270, lines: [[W('Lift',8.5,110), W('it.',8.75,110,1)], [W('now it\'s a',9.5,64)], [W('TABLE.',10,190)]] } },
+    { from: 12, to: 14, kind: 'text', breath: 4, top: 650, lines: [[W('Here\'s',12.25,120)], [W('how it',12.75,120)], [W('works.',13.25,280,1)]] },
+    { from: 14, to: 30, kind: '3d', track: 'A',
+      steps: [
+        { at: 14,   n: '01', lines: [[W('It',14.25,104), W('hangs',14.5,104), W('flat.',15,130,1)]] },
+        { at: 16,   n: '02', lines: [[W('Lift',16.25,112), W('the',16.5,112), W('top.',17,140,1)]] },
+        { at: 19,   n: '03', lines: [[W('The',19.25,104), W('leaves',19.5,104), W('drop.',20,140,1)]] },
+        { at: 22,   n: '04', lines: [[W('Locked',22.25,112), W('level.',22.75,140,1)]] },
+        { at: 24,   n: '',   lines: [[W('Built',24.25,112), W('to',24.5,72), W('last.',25,140,1)]] }],
+      callouts: [
+        { at: 25.5, txt: '3/4" birch plywood', anchor: [-5, 0.8, 8], dx: -20, dy: -190, align: 'center' },
+        { at: 26.5, txt: 'Hinged leaves', anchor: [13, -1.5, 11], dx: -40, dy: -210, align: 'center' },
+        { at: 27.5, txt: 'Braces on the wall', anchor: [-13, -6, 4], dx: 0, dy: 190, align: 'left' } ] },
+    { from: 30, to: 32, kind: 'photo', img: 'detail', top: 640, h: 900, text: { top: 330, lines: [[W('Solid',30.25,130)], [W('hinges.',30.75,170,1)]] } },
+    { from: 32, to: 34, kind: 'photo', img: 'lowpro', top: 640, h: 900, text: { top: 330, lines: [[W('Low-',32.25,150), W('profile.',32.75,170,1)]] } },
+    { from: 34, to: 38, kind: 'photo', img: 'small', swipeIn: true, top: 640, h: 900, text: { top: 270, lines: [[W('Built for',34.5,80)], [W('small',35,160), W('spaces.',35.75,180,1)]] } },
+    { from: 38, to: 42, kind: '3d', track: 'B', breath: 4,
+      steps: [{ at: 38, n: '', lines: [[W('Done?',38.25,112)], [W('Fold it',39,84), W('flat.',39.75,190,1)]] }] },
+    { from: 42, to: 49, kind: 'cta', top: 300, breath: 4,
+      lines: [[W('Drop',42.25,210), W('Leaf',42.75,210)], [W('presale',43.5,190,1)], [W('is now',44.25,84), W('open.',44.75,84)]],
+      card: { img: 'deployed', top: 900, w: 880, h: 560 }, foot: { at: 45.5, txt: 'link in bio ↓', top: 1500 } }
+  ]
+};
+const STORY = {
+  dur: 29,
+  sections: [
+    { from: 0, to: 3, kind: 'text', top: 640, lines: [[W('No',0,150), W('room',.5,150)], [W('for a',1,80)], [W('table?',1.75,300,1)]] },
+    { from: 3, to: 5.5, kind: 'photo', img: 'stowed', top: 660, h: 880,
+      text: { top: 290, lines: [[W('It',3.25,96), W('hangs',3.5,96), W('flat',3.75,118,1)], [W('on the',4.25,64)], [W('WALL.',4.5,190)]] } },
+    { from: 5.5, to: 8, kind: 'photo', img: 'deployed', swipeIn: true, top: 660, h: 880,
+      text: { top: 290, lines: [[W('Lift',5.75,110), W('it.',6,110,1)], [W('now it\'s a',6.5,64)], [W('TABLE.',7,190)]] } },
+    { from: 8, to: 20, kind: '3d', track: 'S', breath: 4,
+      steps: [
+        { at: 8,  n: '01', lines: [[W('It',8.25,104), W('hangs',8.5,104), W('flat.',8.75,130,1)]] },
+        { at: 9,  n: '02', lines: [[W('Lift',9.25,112), W('the',9.5,112), W('top.',9.75,140,1)]] },
+        { at: 11, n: '03', lines: [[W('The',11.1,104), W('leaves',11.35,104), W('drop.',11.6,140,1)]] },
+        { at: 13, n: '04', lines: [[W('Locked',13.25,112), W('level.',13.75,140,1)]] },
+        { at: 14.5, n: '', lines: [[W('Built',14.75,112), W('to',15,72), W('last.',15.25,140,1)]] },
+        { at: 17.5, n: '', lines: [[W('Fold it',17.75,96), W('flat.',18.25,170,1)]] }],
+      callouts: [
+        { at: 15.5, end: 17.5, txt: '3/4" birch plywood', anchor: [-5, 0.8, 8], dx: -20, dy: -190, align: 'center' },
+        { at: 16,   end: 17.5, txt: 'Hinged leaves', anchor: [13, -1.5, 11], dx: -40, dy: -210, align: 'center' },
+        { at: 16.5, end: 17.5, txt: 'Braces on the wall', anchor: [-13, -6, 4], dx: 0, dy: 190, align: 'left' }] },
+    { from: 20, to: 21, kind: 'photo', img: 'lowpro', top: 660, h: 880, text: { top: 330, lines: [[W('Low-',20.1,150), W('profile.',20.4,170,1)]] } },
+    { from: 21, to: 22.5, kind: 'photo', img: 'small', top: 660, h: 880, text: { top: 290, lines: [[W('Built for',21.1,80)], [W('small',21.4,160), W('spaces.',21.7,180,1)]] } },
+    { from: 22.5, to: 29, kind: 'cta', top: 300, breath: 4,
+      lines: [[W('Drop',22.75,210), W('Leaf',23.25,210)], [W('presale',24,190,1)], [W('is now',24.75,84), W('open.',25.25,84)]],
+      card: { img: 'deployed', top: 930, w: 640, h: 380 }, foot: { at: 26, txt: 'tap the link ↓', top: 1350 } }
+  ]
+};
+const EDIT = V === 'story' ? STORY : REEL;
+
+// 3D tracks in local beats from section start
+const TRACKS = {
+  A: {
+    phi:  [[0,90],[2,90],[4.6,0,'io']],
+    leaf: [[0,90],[5,90],[6.1,0,'in'],[6.45,7,'out'],[6.8,0,'io']],
+    az:   [[0,-16],[8,-34,'io'],[10,-46,'io'],[16,26,'io']],
+    el:   [[0,9],[8,16,'io'],[16,20,'io']],
+    dist: [[0,150],[16,140]],
+    arcTop:  [[2,0],[4.6,1,'io'],[7.99,1],[8,0]],
+    arcLeaf: [[5,0],[6.1,1,'in'],[7.99,1],[8,0]],
+    edgeTop: [[2,0],[2.25,1],[4.8,1],[5.1,0]],
+    edgeLeaf:[[5,0],[5.25,1],[7.2,1],[7.6,0]],
+    lock:    [[8,0],[8.25,1],[9.6,1],[10,0]]
+  },
+  B: {
+    phi:  [[0,0],[1.5,0],[3.2,90,'io']],
+    leaf: [[0,0],[0.4,0],[1.6,90,'io']],
+    az:   [[0,-40],[4,-22,'io']],
+    el:   [[0,16],[4,8,'io']],
+    dist: [[0,145],[4,150]],
+    arcTop: [[0,0]], arcLeaf: [[0,0]],
+    edgeTop: [[1.4,0],[1.6,1],[3.2,1],[3.5,0]],
+    edgeLeaf:[[0.3,0],[0.5,1],[1.6,1],[1.9,0]],
+    lock: [[0,0]]
+  },
+  S: {
+    phi:  [[0,90],[1,90],[2.8,0,'io'],[10.2,0],[11.6,90,'io']],
+    leaf: [[0,90],[3,90],[3.8,0,'in'],[4.1,6,'out'],[4.4,0,'io'],[9.5,0],[10.5,90,'io']],
+    az:   [[0,-16],[5,-44,'io'],[9.3,26,'io'],[12,-20,'io']],
+    el:   [[0,9],[5,16,'io'],[9.3,20,'io'],[12,9,'io']],
+    dist: [[0,150],[9,140],[12,150]],
+    arcTop:  [[1,0],[2.8,1,'io'],[4.99,1],[5,0]],
+    arcLeaf: [[3,0],[3.8,1,'in'],[4.99,1],[5,0]],
+    edgeTop: [[1,0],[1.25,1],[3,1],[3.3,0],[10.1,0],[10.3,1],[11.6,1],[11.9,0]],
+    edgeLeaf:[[3,0],[3.25,1],[4.6,1],[5,0],[9.4,0],[9.6,1],[10.5,1],[10.8,0]],
+    lock:    [[5,0],[5.25,1],[6.3,1],[6.5,0]]
+  }
+};
+
+// ---------- three.js scene ----------
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(1080, 1920, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(30, 1080/1920, 1, 1000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xeadfd6, 1.6));
+const sun = new THREE.DirectionalLight(0xfff6ec, 2.4);
+sun.position.set(-30, 45, 60); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 6; sun.shadow.bias = -0.0005;
+Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 200 });
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(40, 10, 40); scene.add(fill);
+
+function texCanvas(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+// seeded random so every render is identical
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const woodTex = texCanvas(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#EBD5AA'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 140; i++) {
+    const y0 = rnd() * h, amp = 6 + rnd() * 18, fr = 0.002 + rnd() * 0.004, ph = rnd() * 6;
+    g.strokeStyle = `rgba(${170 + rnd()*30|0},${120 + rnd()*30|0},${60 + rnd()*20|0},${0.05 + rnd()*0.10})`;
+    g.lineWidth = 1 + rnd() * 3; g.beginPath();
+    for (let x = 0; x <= w; x += 8) g.lineTo(x, y0 + Math.sin(x * fr + ph) * amp + Math.sin(x * fr * 3.1) * amp * .3);
+    g.stroke();
+  }
+});
+const edgeTex = texCanvas(64, 64, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? '#D6B27A' : '#EED9AE'; g.fillRect(0, i*h/8, w, h/8); } });
+edgeTex.wrapS = edgeTex.wrapT = THREE.RepeatWrapping;
+const wood = new THREE.MeshStandardMaterial({ map: woodTex, roughness: .72, metalness: 0 });
+const ply  = new THREE.MeshStandardMaterial({ map: edgeTex, roughness: .8 });
+const steel = new THREE.MeshStandardMaterial({ color: 0x1d1b1e, roughness: .45, metalness: .6 });
+
+// wall: soft panel that fades into the canvas color, with a faint grid
+const wallTex = texCanvas(1024, 1024, (g, w, h) => {
+  const grd = g.createRadialGradient(w/2, h/2, w*.12, w/2, h/2, w*.5);
+  grd.addColorStop(0, 'rgba(236,230,239,1)'); grd.addColorStop(1, 'rgba(253,251,254,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'source-atop'; g.strokeStyle = 'rgba(205,196,210,.35)'; g.lineWidth = 2;
+  for (let i = 0; i <= w; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); }
+});
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(110, 110), new THREE.MeshStandardMaterial({ map: wallTex, transparent: true, roughness: 1 }));
+wall.position.set(0, -6, 0); wall.receiveShadow = true; scene.add(wall);
+const shadowCatch = new THREE.Mesh(new THREE.PlaneGeometry(110, 110), new THREE.ShadowMaterial({ opacity: .22 }));
+shadowCatch.position.set(0, -6, 0.02); shadowCatch.receiveShadow = true; scene.add(shadowCatch);
+
+// dimensions (inches): top 26 x 13, leaves 12 deep x 10 tall with a 7" round
+const TW = 26, TD = 13, TT = 0.75, LD = 12, LH = 10, LR = 7, HZ = 1;
+// plywood backer board the unit mounts to (as in the photos)
+const backer = new THREE.Mesh(new THREE.BoxGeometry(24, 46, .75), [ply, ply, ply, ply, new THREE.MeshStandardMaterial({ map: woodTex.clone(), color: 0xE2C38E, roughness: .75 }), ply]);
+backer.position.set(0, -12, -.2); backer.castShadow = backer.receiveShadow = true; scene.add(backer);
+const redLine = () => new THREE.LineBasicMaterial({ color: RED, transparent: true, opacity: 0 });
+const topPivot = new THREE.Group(); topPivot.position.set(0, 0, HZ); scene.add(topPivot);
+const topMesh = new THREE.Mesh(new THREE.BoxGeometry(TW, TT, TD), [ply, ply, wood, wood, ply, ply]);
+topMesh.position.set(0, TT/2, TD/2); topMesh.castShadow = topMesh.receiveShadow = true; topPivot.add(topMesh);
+const topEdge = new THREE.LineSegments(new THREE.EdgesGeometry(topMesh.geometry), redLine()); topMesh.add(topEdge);
+for (const x of [-TW*.3, TW*.3]) { const h = new THREE.Mesh(new THREE.BoxGeometry(2.2, .08, 1.0), steel); h.position.set(x, TT + .04, .5); h.castShadow = true; topPivot.add(h); }
+
+const leafShape = new THREE.Shape();
+leafShape.moveTo(0, 0); leafShape.lineTo(LD, 0); leafShape.lineTo(LD, -(LH - LR));
+leafShape.absarc(LD - LR, -(LH - LR), LR, 0, -Math.PI/2, true); leafShape.lineTo(0, -LH); leafShape.lineTo(0, 0);
+const leafGeo = new THREE.ExtrudeGeometry(leafShape, { depth: TT, bevelEnabled: false, curveSegments: 32 });
+leafGeo.computeBoundingBox();
+// fix UVs so the grain maps sensibly on the faces
+{ const uv = leafGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 14, uv.getY(i) / 14); }
+const leaves = [];
+for (const s of [1, -1]) {
+  const piv = new THREE.Group(); piv.position.set(s * TW/2, 0, 0); topPivot.add(piv);
+  const m = new THREE.Mesh(leafGeo, [wood, ply]); m.rotation.y = -Math.PI/2;
+  m.position.set(s > 0 ? 0 : TT, 0, 0); m.castShadow = m.receiveShadow = true; piv.add(m);
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(leafGeo, 30), redLine()));
+  for (const z of [2, LD - 2]) { const h = new THREE.Mesh(new THREE.BoxGeometry(.08, 1.1, 1.6), steel); h.position.set(s * .04, -.55, z); piv.add(h); }
+  leaves.push({ piv, s, mesh: m });
+}
+// motion arcs (thick red tubes drawn on progressively)
+function arcTube(fn, n = 64) {
+  const pts = []; for (let i = 0; i <= n; i++) pts.push(fn(i / n));
+  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n, .22, 10, false);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: RED }));
+  const head = new THREE.Mesh(new THREE.ConeGeometry(.75, 1.8, 18), new THREE.MeshBasicMaterial({ color: RED }));
+  scene.add(mesh); scene.add(head);
+  return { mesh, head, fn, total: geo.index.count, n };
+}
+const RA = TD + 2.2;
+const arcTop = arcTube(t => { const a = (90 - 90*t) * Math.PI/180; return new THREE.Vector3(-TW/2 - 1.5, -Math.sin(a)*RA, HZ + Math.cos(a)*RA); });
+const RL = LH + 2;
+const arcLeaf = [1, -1].map(s => arcTube(t => { const a = (90 - 90*t) * Math.PI/180; return new THREE.Vector3(s*(TW/2 + Math.sin(a)*RL), -Math.cos(a)*RL + .5, HZ + LD*.62); }));
+function setArc(arc, p) {
+  arc.mesh.visible = arc.head.visible = p > 0.001;
+  arc.mesh.geometry.setDrawRange(0, Math.floor(arc.total * p / 6) * 6);
+  const a = arc.fn(Math.max(p, .02)), b = arc.fn(Math.max(p - .02, 0));
+  arc.head.position.copy(a); arc.head.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), a.clone().sub(b).normalize());
+}
+const target = new THREE.Vector3(0, -4.5, 7);
+function pose3D(trk, b) {
+  const g = k => kf(TRACKS[trk][k], b);
+  topPivot.rotation.x = g('phi') * Math.PI/180;
+  for (const L of leaves) L.piv.rotation.z = L.s * g('leaf') * Math.PI/180;
+  topEdge.material.opacity = Math.max(g('edgeTop'), g('lock'));
+  for (const L of leaves) L.mesh.children[0].material.opacity = Math.max(g('edgeLeaf'), g('lock'));
+  setArc(arcTop, g('arcTop')); for (const a of arcLeaf) setArc(a, g('arcLeaf'));
+  const az = g('az') * Math.PI/180, el = g('el') * Math.PI/180, d = g('dist');
+  cam.position.set(target.x + d*Math.sin(az)*Math.cos(el), target.y + d*Math.sin(el), target.z + d*Math.cos(az)*Math.cos(el));
+  cam.lookAt(target);
+  // nudge the model toward the lower-middle of the frame
+  cam.setViewOffset(1080, 1920, 0, -60, 1080, 1920);
+  cam.updateMatrixWorld();
+}
+function project(p) { const v = new THREE.Vector3(...p).project(cam); return [(v.x + 1) / 2 * 1080, (1 - v.y) / 2 * 1920]; }
+
+// ---------- DOM helpers ----------
+const dom = document.getElementById('dom'), svg = document.getElementById('lines'), hbv = document.getElementById('hbv');
+function wordHTML(wd, f) {
+  const s = B(wd.at), big = wd.z >= 180, n = big ? 4 : 3;
+  if (f < s) return `<span class="w${wd.sf?' sf':''}" style="font-size:${wd.z}px;visibility:hidden">${wd.w}</span>`;
+  const p = ease.pop(clamp((f - s) / n));
+  const sc = big ? 1.2 - .2*p : .86 + .14*p, bl = (big ? 10 : 6) * (1 - p);
+  return `<span class="w${wd.sf?' sf':''}" style="font-size:${wd.z}px;opacity:${p};transform:translateY(${6*(1-p)}px) scale(${sc});filter:blur(${bl}px);color:${mixHex(PINK, RED, p)}">${wd.w}</span>`;
+}
+const linesHTML = (lines, f, top) => `<div class="txt" style="top:${top}px">${lines.map(l => `<div class="ln">${l.map(w => wordHTML(w, f)).join('')}</div>`).join('')}</div>`;
+const IMG = n => `img/${n}.jpg`;
+function cardHTML(img, top, h, f0, f1, f, left = 43, w = 994) {
+  const push = 1 + .04 * clamp((f - f0) / (f1 - f0));
+  return `<div class="card" style="left:${left}px;top:${top}px;width:${w}px;height:${h}px"><img src="${IMG(img)}" style="transform:scale(${push})"></div>`;
+}
+function tagHTML() { return `<div class="tag" style="top:${V === 'story' ? 200 : 210}px"><i></i>Drop Leaf · wall table</div>`; }
+
+// collect cues once
+for (const sec of EDIT.sections) {
+  const st = B(sec.from) + (sec.breath || 0);
+  if (sec.swipeIn) cues.push({ f: B(sec.from) - 2, type: 'whoosh' });
+  else cues.push({ f: st, type: 'pop' });
+  const all = [].concat(sec.lines || [], sec.text ? sec.text.lines : [], ...(sec.steps || []).map(s => s.lines));
+  for (const l of all) for (const w of l) if (w.z >= 180) cues.push({ f: B(w.at), type: 'pop' });
+  for (const s of sec.steps || []) if (s.at !== sec.from) cues.push({ f: B(s.at), type: 'tick' });
+  for (const c of sec.callouts || []) cues.push({ f: B(c.at), type: 'tick' });
+  if (sec.track === 'A' || sec.track === 'S') { const L = TRACKS[sec.track];
+    cues.push({ f: B(sec.from + L.phi[1][0]), type: 'swoosh' });
+    const li = L.leaf.findIndex(k => k[1] === 0); cues.push({ f: B(sec.from + L.leaf[li][0]), type: 'clack' });
+    if (sec.track === 'S') { cues.push({ f: B(sec.from + 9.5), type: 'swoosh' }); cues.push({ f: B(sec.from + 11.6), type: 'clack' }); } }
+  if (sec.track === 'B') { cues.push({ f: B(sec.from + .4), type: 'swoosh' }); cues.push({ f: B(sec.from + 3.2), type: 'clack' }); }
+  if (sec.foot) cues.push({ f: B(sec.foot.at), type: 'tick' });
+}
+
+// ---------- render one frame ----------
+const secs = EDIT.sections;
+function renderFrame(f) {
+  const b = f / FPB;
+  let i = secs.findIndex(s => f >= B(s.from) && f < B(s.to)); if (i < 0) i = secs.length - 1;
+  const sec = secs[i], f0 = B(sec.from), f1 = B(sec.to);
+  let html = '', lines = '';
+  canvas.style.visibility = 'hidden'; hbv.setAttribute('stdDeviation', '0 0');
+  const breath = sec.breath && f < f0 + sec.breath;
+  if (!breath) {
+    if (sec.kind === 'text') html += linesHTML(sec.lines, f, sec.top);
+    if (sec.kind === 'photo') {
+      // swipe: incoming card crosses the frame over 6 frames, new shot revealed from frame 4
+      const sf = f - f0 + 2;
+      const prev = secs[i-1];
+      if (sec.swipeIn && sf < 4 && prev && prev.kind === 'photo') html += cardHTML(prev.img, prev.top, prev.h, B(prev.from), B(prev.to), f);
+      else html += cardHTML(sec.img, sec.top, sec.h, f0, f1, f);
+      if (sec.text && !(sec.swipeIn && sf < 4)) html += linesHTML(sec.text.lines, f, sec.text.top);
+      else if (sec.swipeIn && sf < 4 && prev.text) html += linesHTML(prev.text.lines, f, prev.text.top);
+      if (sec.swipeIn && sf >= 0 && sf <= 6) {
+        const x = 1.1 - 2.2 * (sf / 6), blur = sf === 3 ? 40 : 60;
+        hbv.setAttribute('stdDeviation', `${blur} 0`);
+        html += `<div class="card" style="top:${sec.top}px;height:${sec.h}px;transform:translateX(${x*1080}px);border:6px solid ${RED};box-sizing:border-box;filter:url(#hb)"><img src="${IMG(sec.img)}"></div>`;
+      }
+    }
+    if (sec.kind === '3d') {
+      canvas.style.visibility = 'visible';
+      const lb = b - sec.from; pose3D(sec.track, lb); renderer.render(scene, cam);
+      let st = null; for (const s of sec.steps) if (b >= s.at) st = s;
+      if (st) {
+        if (st.n) html += `<div class="txt" style="top:${V==='story'?300:290}px"><span class="chip">${st.n}</span></div>`;
+        html += linesHTML(st.lines, f, V === 'story' ? 370 : 360);
+      }
+      const trk = TRACKS[sec.track];
+      if (kf(trk.lock, lb) > .5) html += `<div class="txt" style="top:1370px"><span class="small">✓ locked</span></div>`;
+      for (const c of sec.callouts || []) {
+        if (b < c.at || (c.end && b >= c.end)) continue;
+        const p = ease.pop(clamp((f - B(c.at)) / 4));
+        const [ax, ay] = project(c.anchor), lx = ax + c.dx, ly = ay + c.dy;
+        lines += `<line x1="${ax}" y1="${ay}" x2="${ax + (lx-ax)*p}" y2="${ay + (ly-ay)*p}" stroke="${RED}" stroke-width="4"/>`;
+        html += `<div class="dot" style="left:${ax}px;top:${ay}px;transform:scale(${p})"></div>`;
+        const up = c.dy < 0, ty = up ? '-100%' : '0';
+        const tx = c.align === 'right' ? `translate(-100%,${ty})` : c.align === 'center' ? `translate(-50%,${ty})` : `translate(-12%,${ty})`;
+        html += `<div class="call${c.sf?' sf':''}" style="left:${lx}px;top:${ly + (up ? -8 : 8)}px;transform:${tx};opacity:${p};filter:blur(${6*(1-p)}px);color:${mixHex(PINK, RED, p)}">${c.txt}</div>`;
+      }
+    }
+    if (sec.kind === 'cta') {
+      html += linesHTML(sec.lines, f, sec.top);
+      const c = sec.card, cs = B(sec.from) + sec.breath + 6;
+      if (f >= cs) { const p = ease.pop(clamp((f - cs) / 6));
+        html += `<div style="opacity:${p};transform:translateY(${30*(1-p)}px)">${cardHTML(c.img, c.top, c.h, cs, f1, f, (1080 - c.w)/2, c.w)}</div>`; }
+      if (b >= sec.foot.at) { const p = ease.pop(clamp((f - B(sec.foot.at)) / 4));
+        html += `<div class="txt" style="top:${sec.foot.top}px;opacity:${p}"><span class="small">${sec.foot.txt}</span></div>`; }
+    }
+    html += tagHTML();
+  }
+  dom.innerHTML = html; svg.innerHTML = lines;
+}
+
+// preload images + fonts, then expose
+const imgs = ['stowed', 'deployed', 'detail', 'lowpro', 'small'];
+window.__ready = Promise.all([document.fonts.load('900 100px IT'), document.fonts.load('italic 100px IS'),
+  ...imgs.map(n => new Promise(r => { const im = new Image(); im.onload = r; im.src = IMG(n); }))]).then(() => true);
+window.__frames = B(EDIT.dur);
+window.__cues = cues.sort((a, b) => a.f - b.f);
+window.__fpb = FPB;
+window.renderFrame = f => { renderFrame(f); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); };
+</script>
+</body></html>
