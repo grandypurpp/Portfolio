@@ -1,0 +1,368 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:IT;font-weight:300;src:url(fonts/inter-tight-latin-300-normal.woff2)}
+@font-face{font-family:IT;font-weight:400;src:url(fonts/inter-tight-latin-400-normal.woff2)}
+@font-face{font-family:IT;font-weight:500;src:url(fonts/inter-tight-latin-500-normal.woff2)}
+html,body{margin:0;overflow:hidden;background:#0d0a08}
+#stage{position:absolute;left:0;top:0;overflow:hidden;background:#0d0a08}
+#stage>*{position:absolute;inset:0}
+canvas#gl{width:100%;height:100%}
+.shot{position:absolute;inset:0;overflow:hidden}
+.bgimg{position:absolute;inset:-6%;background-size:cover;background-position:center;filter:blur(46px) brightness(.42) saturate(1.1)}
+.panel{position:absolute;overflow:hidden;border-radius:4px;box-shadow:0 40px 120px rgba(0,0,0,.55)}
+.panel img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;filter:contrast(1.05) saturate(1.04)}
+.t{position:absolute;color:#F6EFE6;font-family:IT;white-space:nowrap}
+.lab{font-weight:500;letter-spacing:.32em;text-transform:uppercase;opacity:.72}
+.hd{font-weight:300;letter-spacing:-.015em;line-height:1.04}
+.sub{font-weight:400;letter-spacing:.02em;opacity:.78}
+.rule{position:absolute;height:1px;background:rgba(246,239,230,.55)}
+.call{position:absolute;font-family:IT;color:#F6EFE6;white-space:nowrap}
+.call b{display:block;font-weight:400;letter-spacing:.01em}
+.call i{display:block;font-style:normal;font-weight:500;letter-spacing:.24em;text-transform:uppercase;opacity:.6;margin-top:6px}
+#grade{background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,0) 52%,rgba(8,5,3,.62) 100%)}
+#leak{mix-blend-mode:screen;pointer-events:none}
+#grain{width:100%;height:100%;mix-blend-mode:overlay;opacity:.07}
+#black{background:#000}
+</style></head>
+<body>
+<div id="stage">
+  <canvas id="gl"></canvas>
+  <div id="shots"></div>
+  <svg id="lines"></svg>
+  <div id="texts"></div>
+  <div id="grade"></div>
+  <div id="leak"></div>
+  <canvas id="grain" width="480" height="270"></canvas>
+  <div id="black"></div>
+</div>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const AR = new URLSearchParams(location.search).get('ar') || '16x9';
+const VERT = AR === '9x16';
+const W = VERT ? 1080 : 1920, H = VERT ? 1920 : 1080, FPS = 30, DUR = 40.5;
+const stage = document.getElementById('stage'); stage.style.width = W + 'px'; stage.style.height = H + 'px';
+document.body.style.width = W + 'px'; document.body.style.height = H + 'px';
+const U = VERT ? 1.25 : 1;                // type scale
+
+// ---------------- curves ----------------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const E = {
+  lin: t => t,
+  io: t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2,           // easeInOutCubic
+  io5: t => t < .5 ? 16*t**5 : 1 - Math.pow(-2*t + 2, 5) / 2,           // easeInOutQuint (AE "easy ease" feel)
+  oexp: t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  icub: t => t*t*t, osine: t => Math.sin(t * Math.PI / 2), isine: t => 1 - Math.cos(t * Math.PI / 2),
+  iquad: t => t*t,
+};
+const seg = (t, a, b, e = 'io') => E[e](clamp((t - a) / (b - a)));
+// Catmull-Rom through keys [[t, v], ...] for fluid multi-key camera moves (ends held)
+function spline(keys, t) {
+  if (t <= keys[0][0]) return keys[0][1];
+  const n = keys.length; if (t >= keys[n-1][0]) return keys[n-1][1];
+  let i = 0; while (t > keys[i+1][0]) i++;
+  const p0 = keys[Math.max(0, i-1)][1], p1 = keys[i][1], p2 = keys[i+1][1], p3 = keys[Math.min(n-1, i+2)][1];
+  const u = E.io((t - keys[i][0]) / (keys[i+1][0] - keys[i][0])) * .35 + ((t - keys[i][0]) / (keys[i+1][0] - keys[i][0])) * .65;
+  const m1 = (i === 0 ? 0 : (p2 - p0) / 2), m2 = (i + 1 === n - 1 ? 0 : (p3 - p1) / 2);
+  const u2 = u*u, u3 = u2*u;
+  return (2*u3 - 3*u2 + 1)*p1 + (u3 - 2*u2 + u)*m1 + (-2*u3 + 3*u2)*p2 + (u3 - u2)*m2;
+}
+
+// ---------------- 3D: renderer, scene, lighting ----------------
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a120c);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.16;
+const cam = new THREE.PerspectiveCamera(VERT ? 34 : 24, W / H, 0.5, 600);
+
+const key = new THREE.SpotLight(0xffd9ad, 9000, 0, .42, .95, 2);      // warm window-light pool
+key.position.set(-34, 46, 62); key.target.position.set(0, -4, 0); scene.add(key.target);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0002; key.shadow.normalBias = 0.02; key.shadow.radius = 6;
+key.shadow.camera.near = 20; key.shadow.camera.far = 200;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xbcd2ff, 0.35); rim.position.set(35, 10, 25); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0xfff0e0, 0x3a2615, 0.18));
+
+let seed = 9; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function tex(w, h, draw, rep = [1, 1]) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...rep); t.anisotropy = 16; return t; }
+function grain(g, w, h, base, line, n = 170) {
+  g.fillStyle = base; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 12; i++) { g.fillStyle = `rgba(190,140,80,${.04 + rnd()*.07})`; g.beginPath(); g.ellipse(rnd()*w, rnd()*h, 80 + rnd()*260, 18 + rnd()*60, rnd()*.4 - .2, 0, 7); g.fill(); }
+  for (let k = 0; k < n; k++) { const y0 = rnd()*h, amp = 4 + rnd()*20, f = .004 + rnd()*.01, ph = rnd()*6.28;
+    g.strokeStyle = line.replace('A', (0.05 + rnd()*.12).toFixed(3)); g.lineWidth = .6 + rnd()*1.6; g.beginPath();
+    for (let x = 0; x <= w; x += 8) { const y = y0 + Math.sin(x*f + ph)*amp + Math.sin(x*f*3.1 + ph*2)*amp*.25; x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+}
+// warm cedar slat wall, like the vans in the photos
+const slatTex = tex(1024, 1024, (g, w, h) => {
+  for (let i = 0; i < 8; i++) {
+    const y = i * h / 8, c = 150 + rnd()*30;
+    g.fillStyle = `rgb(${c - 10|0},${c - 52|0},${c - 100|0})`; g.fillRect(0, y, w, h / 8);
+    for (let k = 0; k < 26; k++) { const yy = y + rnd()*h/8; g.strokeStyle = `rgba(110,60,25,${.06 + rnd()*.1})`; g.lineWidth = .5 + rnd()*1.6;
+      g.beginPath(); for (let x = 0; x <= w; x += 16) g.lineTo(x, yy + Math.sin(x*.01 + k)*3); g.stroke(); }
+    g.fillStyle = 'rgba(30,15,6,.55)'; g.fillRect(0, y, w, 4); g.fillStyle = 'rgba(255,220,180,.12)'; g.fillRect(0, y + 4, w, 2);
+  }
+}, [6, 6]);
+const wallMat = new THREE.MeshStandardMaterial({ map: slatTex, roughness: .78 });
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(240, 240), wallMat); wall.position.set(0, -20, 0); wall.receiveShadow = true; scene.add(wall);
+
+const birch = s => { seed = s; return new THREE.MeshPhysicalMaterial({ map: tex(1024, 1024, (g, w, h) => grain(g, w, h, '#F1D4A2', 'rgba(150,95,40,A)', 220), [1/18, 1/18]),
+  roughness: .42, clearcoat: .45, clearcoatRoughness: .35, sheen: .3, sheenColor: new THREE.Color(0xffe6c0) }); };
+const plyEdge = new THREE.MeshStandardMaterial({ roughness: .75, map: tex(16, 64, (g) => {
+  for (let i = 0; i < 7; i++) { g.fillStyle = i % 2 ? '#C9A066' : '#EFDDB8'; g.fillRect(0, i * 64/7, 16, 64/7 + 1); } }, [1, 1/.625]), color: 0xfff1dd });
+const steel = new THREE.MeshPhysicalMaterial({ color: 0x141414, roughness: .32, metalness: .85, clearcoat: .3 });
+
+// geometry from the product page's own model: top 14 x 9, leaves 4.5 x 9 with a 3.2" round, 5/8" stock
+const TH = .625, BV = .035;
+const extrude = sh => { const g = new THREE.ExtrudeGeometry(sh, { depth: TH - 2*BV, bevelEnabled: true, bevelThickness: BV, bevelSize: BV, bevelSegments: 3, curveSegments: 40 }); g.translate(0, 0, BV); return g; };
+const meshOf = (geo, face) => { const m = new THREE.Mesh(geo, [face, plyEdge]); m.castShadow = m.receiveShadow = true; return m; };
+const topPivot = new THREE.Group(); topPivot.position.set(0, 0, .02); scene.add(topPivot);
+const topHolder = new THREE.Group(); topPivot.add(topHolder);
+const cs = new THREE.Shape(); cs.moveTo(-7, 0); cs.lineTo(7, 0); cs.lineTo(7, -9); cs.lineTo(-7, -9); cs.lineTo(-7, 0);
+topHolder.add(meshOf(extrude(cs), birch(7)));
+function leafShape(d) { const r = 3.2, s = new THREE.Shape(), w = 4.5 * d; s.moveTo(0, 0); s.lineTo(w, 0); s.lineTo(w, -9 + r);
+  s.absarc(w - r*d, -9 + r, r, d > 0 ? 0 : Math.PI, -Math.PI/2, d > 0); s.lineTo(0, -9); s.lineTo(0, 0); return s; }
+const leafL = new THREE.Group(), leafR = new THREE.Group(); leafL.position.set(-7.06, 0, 0); leafR.position.set(7.06, 0, 0);
+leafL.add(meshOf(extrude(leafShape(-1)), birch(21))); leafR.add(meshOf(extrude(leafShape(1)), birch(33)));
+topHolder.add(leafL); topHolder.add(leafR);
+const plate = (w, h) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, .06), steel); m.castShadow = true; return m; };
+const hingeParts = [];
+for (const x of [-4.4, 4.4]) {
+  const a = plate(1.3, .55); a.position.set(x, .3, .05); scene.add(a); hingeParts.push(a);
+  const b = plate(1.3, .55); b.position.set(x, -.3, TH + .03); topHolder.add(b);
+  const k = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 1.3, 20), steel); k.rotation.z = Math.PI/2; k.position.set(x, 0, TH + .06); topPivot.add(k);
+}
+for (const d of [-1, 1]) for (const y of [-1.2, -7.8]) {
+  const k = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 1.1, 20), steel); k.position.set(d*7.03, y, .01); topHolder.add(k);
+}
+// 13" laptop (11.97 x 8.36 x 0.44 in), lid open ~108 deg
+const laptop = new THREE.Group();
+{ const alu = new THREE.MeshPhysicalMaterial({ color: 0xd0d3d8, roughness: .3, metalness: .85, clearcoat: .4 });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(11.97, .35, 8.36), alu); base.position.y = .175; base.castShadow = base.receiveShadow = true; laptop.add(base);
+  const kb = new THREE.Mesh(new THREE.BoxGeometry(10.2, .02, 3.9), new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: .7 })); kb.position.set(0, .36, -1.4); laptop.add(kb);
+  const lidP = new THREE.Group(); lidP.position.set(0, .35, -4.18); laptop.add(lidP);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(11.97, 8.1, .2), alu); lid.position.set(0, 4.05, -.1); lid.castShadow = true; lidP.add(lid);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(11.2, 7.3), new THREE.MeshBasicMaterial({ map: tex(512, 334, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#1d2a3a'); gr.addColorStop(.55, '#3d4d63'); gr.addColorStop(1, '#c58a55'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }) }));
+  scr.position.set(0, 4.05, .005); lidP.add(scr); lidP.rotation.x = -(108 - 90) * Math.PI / 180 * -1;
+}
+laptop.visible = false; scene.add(laptop);
+
+// post: depth of field + ACES output
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(1); composer.setSize(W, H);
+composer.addPass(new RenderPass(scene, cam));
+const bokeh = new BokehPass(scene, cam, { focus: 40, aperture: 0.0006, maxblur: 0.012 });
+composer.addPass(bokeh); composer.addPass(new OutputPass());
+
+// pose: a = lift (0 hanging .. 90 level), b = leaves (0 flat .. 90 braced), x = exploded 0..1
+function pose(a, b, x = 0) {
+  topPivot.rotation.x = -a * Math.PI / 180;
+  leafL.rotation.y = -b * Math.PI / 180; leafR.rotation.y = b * Math.PI / 180;
+  topHolder.position.z = 0;
+  // exploded: top floats up (local +z when level), leaves slide out, hinges stay
+  topHolder.children[0].position.z = 2.6 * x;
+  leafL.position.x = -7.06 - 2.4 * x; leafR.position.x = 7.06 + 2.4 * x;
+  leafL.position.z = leafR.position.z = 1.1 * x;
+}
+const target = new THREE.Vector3();
+function camera(az, el, dist, tx, ty, tz, focusOff = 0, aperture = .0006, roll = 0) {
+  if (VERT) tx *= .1;
+  target.set(tx, ty, tz);
+  const a = az * Math.PI/180, e = el * Math.PI/180, d = dist * (VERT ? 2.05 : 1);
+  cam.position.set(tx + d*Math.sin(a)*Math.cos(e), ty + d*Math.sin(e), tz + d*Math.cos(a)*Math.cos(e));
+  if (VERT) cam.setViewOffset(W, H, 0, H * .09, W, H);
+  cam.up.set(Math.sin(roll*Math.PI/180), Math.cos(roll*Math.PI/180), 0); cam.lookAt(target);
+  bokeh.uniforms.focus.value = cam.position.distanceTo(target) + focusOff;
+  bokeh.uniforms.aperture.value = aperture;
+}
+const project = p => { const v = p.clone().project(cam); return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H]; };
+const worldOf = (obj, local) => obj.localToWorld(new THREE.Vector3(...local));
+
+// ---------------- the film ----------------
+// 3D shot functions get local time t (s) and set pose + camera. Keys: [t, value]
+const K = (...pairs) => pairs;
+const SH3D = {
+  macro(t) {            // close glide over the folded panel: edge grain, hinge, rounded leaf
+    pose(0, 0);
+    camera(spline(K([0, 46], [4.6, 28]), t), spline(K([0, -14], [4.6, -6]), t), spline(K([0, 24], [4.6, 20]), t),
+           spline(K([0, 8], [4.6, 9.2]), t), spline(K([0, -6.8], [4.6, -5.4]), t), .3, 0, .0022, spline(K([0, -3], [4.6, 0]), t));
+  },
+  deploy(t) {           // lift, fold, lock, laptop
+    const a = 90 * seg(t, 1.0, 2.6, 'io5');
+    const bl = 90 * seg(t, 3.2, 4.25, 'iquad'), br = 90 * seg(t, 3.35, 4.4, 'iquad');
+    const settle = Math.sin(clamp((t - 4.4) / .35) * Math.PI) * 3 * (t > 4.4 ? 1 : 0);
+    pose(a, Math.min(bl, br) - settle * 0 , 0); leafL.rotation.y = -(bl - settle) * Math.PI/180; leafR.rotation.y = (br - settle) * Math.PI/180;
+    laptop.visible = t > 5.6;
+    if (laptop.visible) { const p = seg(t, 5.6, 7.0, 'io5');
+      laptop.position.set(.1, TH + .02 + (1 - p) * 5, 4.4 + (1 - p) * 9); laptop.rotation.set(0, (1 - p) * -.35, 0); }
+    camera(spline(K([0, 52], [2.6, 34], [4.6, 24], [6.2, 30], [8.6, 38]), t), spline(K([0, 6], [2.6, 14], [4.6, 18], [8.6, 26]), t),
+           spline(K([0, 58], [2.6, 50], [4.6, 44], [8.6, 52]), t), spline(K([0, -4], [8.6, -5.5]), t),
+           spline(K([0, -4.5], [2.6, -2.5], [8.6, 1.2]), t), spline(K([0, 1], [2.6, 4], [8.6, 5]), t), 0, .0009);
+  },
+  specs(t) {            // exploded view
+    laptop.visible = false;
+    const x = seg(t, .6, 1.8, 'io5') * (1 - seg(t, 6.0, 7.1, 'io5'));
+    pose(90, 90, x);
+    camera(spline(K([0, -20], [3.5, -34], [7.6, -44]), t), spline(K([0, 16], [7.6, 22]), t), spline(K([0, 56], [7.6, 52]), t),
+           VERT ? 0 : -3.5, -3.5, 4.5, 0, .0005);
+  },
+  fold(t) {             // back flat, camera pulls out to the wall; end card holds here
+    laptop.visible = false;
+    const b = 90 * (1 - seg(t, .8, 1.8, 'io5')), a = 90 * (1 - seg(t, 2.0, 3.4, 'io5'));
+    pose(a, b);
+    camera(spline(K([0, 30], [3.4, 14], [9.5, -8]), t), spline(K([0, 18], [3.4, 8], [9.5, 4]), t), spline(K([0, 44], [3.4, 52], [9.5, 60]), t),
+           spline(K([0, -4], [4, VERT ? 0 : -9], [9.5, VERT ? 0 : -11]), t), spline(K([0, -2], [3.4, -4.5], [9.5, VERT ? -9 : -4.5]), t), 1, 0, .0007);
+  }
+};
+// shots: [start, end, type, arg, fadeIn]
+const SHOTS = [
+  { a: 0,    b: 4.6,  k: '3d',    f: 'macro',  fin: 0 },
+  { a: 4.0,  b: 8.6,  k: 'photo', img: 'folded_flat',  pan: [.62, .48], fin: .6 },
+  { a: 8.0,  b: 16.6, k: '3d',    f: 'deploy', fin: .6 },
+  { a: 16.0, b: 20.6, k: 'photo', img: 'open_bedside', pan: [.30, .46], fin: .6 },
+  { a: 20.0, b: 27.6, k: '3d',    f: 'specs',  fin: .6 },
+  { a: 27.0, b: 31.6, k: 'photo', img: 'folded_bed',   pan: [.55, .40], fin: .6 },
+  { a: 31.0, b: 40.5, k: '3d',    f: 'fold',   fin: .6 },
+];
+// text: [in, out, html, x, y, style]
+const LX = VERT ? 90 : 150, BY = VERT ? 1500 : 760;
+const TX = [
+  { a: 1.3,  b: 3.8,  lab: 'Seven Seas Vans', hd: 'Every inch counts.' },
+  { a: 4.7,  b: 8.0,  lab: 'Drop Leaf Wall Table', hd: 'Flat to the wall.', sub: '23 × 9 in  ·  58 × 23 cm', side: 'photo' },
+  { a: 9.0,  b: 10.9, hd: 'Lift.' },
+  { a: 11.1, b: 12.6, hd: 'Fold.' },
+  { a: 12.75, b: 14.0, hd: 'Locked at 90°.' },
+  { a: 14.1, b: 16.0, hd: 'Room for a 13″ laptop.', sub: '13 × 9 in  ·  33 × 23 cm' },
+  { a: 16.7, b: 20.0, lab: 'No legs. No tools.', hd: 'Sets up in seconds.', side: 'photo' },
+  { a: 27.7, b: 31.0, lab: 'Vans · Tiny homes · Studios · Workshops', hd: 'Built for tight spaces.', side: 'photo' },
+  { a: 32.0, b: 34.9, hd: 'Back flat when you’re done.' },
+];
+const CALLS = [   // spec callouts in the exploded view (anchor: object + local point)
+  { a: 21.6, b: 26.0, o: () => topHolder.children[0], p: [-3, -4.5, TH], dx: -90, dy: -130, t: 'Baltic birch', s: 'Light, strong, smooth' },
+  { a: 22.4, b: 26.0, o: () => topPivot, p: [4.4, 0, TH + .06], dx: 110, dy: -170, t: 'Black steel hinges', s: 'No hardware to fiddle with' },
+  { a: 23.2, b: 26.0, o: () => leafR, p: [3, -7, TH], dx: 120, dy: 120, t: 'Self-bracing leaves', s: 'Lock the top at 90°' },
+  { a: 24.0, b: 26.0, o: () => leafL, p: [-3, -6, TH], dx: -170, dy: 110, t: '≈ 6 lb  ·  2.7 kg', s: 'Wall-mounted' },
+];
+
+// ---------------- DOM rendering ----------------
+const shotsEl = document.getElementById('shots'), textsEl = document.getElementById('texts'), linesEl = document.getElementById('lines');
+const leakEl = document.getElementById('leak'), blackEl = document.getElementById('black'), grainC = document.getElementById('grain');
+linesEl.setAttribute('width', W); linesEl.setAttribute('height', H);
+const img = n => `img/${n}.jpg`;
+function shotAlpha(s, t) { const fi = s.fin ? seg(t, s.a, s.a + s.fin, 'io') : 1; return fi; }
+function photoHTML(s, t, alpha) {
+  const p = clamp((t - s.a) / (s.b - s.a)), push = 1.07 - .07 * E.osine(p);
+  const blur = 18 * (1 - alpha);
+  if (VERT) {
+    const y = 50 + (s.pan[1] - .5) * 40 * (1 - p);
+    return `<div class="shot" style="opacity:${alpha};filter:blur(${blur}px)"><div class="panel" style="inset:0;border-radius:0">
+      <img src="${img(s.img)}" style="transform:scale(${push});object-position:${s.pan[0]*100}% ${y}%"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(10,6,3,.78) 100%)"></div></div>`;
+  }
+  const pw = 760, ph = 1004, px = 1040, py = 38;
+  const drift = (1 - E.osine(p)) * 26;
+  return `<div class="shot" style="opacity:${alpha};filter:blur(${blur}px)">
+    <div class="bgimg" style="background-image:url(${img(s.img)});transform:scale(${1.12 - .04*p})"></div>
+    <div class="panel" style="left:${px}px;top:${py + drift}px;width:${pw}px;height:${ph}px;transform:scale(${1 + .02*(1-alpha)})">
+      <img src="${img(s.img)}" style="transform:scale(${push});object-position:${s.pan[0]*100}% ${s.pan[1]*100}%"></div></div>`;
+}
+function textHTML(x, t) {
+  const pin = seg(t, x.a, x.a + .9, 'oexp'), pout = seg(t, x.b - .5, x.b, 'icub');
+  if (t < x.a || t > x.b) return '';
+  const op = pin * (1 - pout), y = 26 * (1 - pin) - 12 * pout, bl = 12 * (1 - pin) + 8 * pout, ls = .12 * (1 - pin);
+  const onPhoto = x.side === 'photo' && !VERT;
+  const left = LX, top = onPhoto ? 430 : BY;
+  let h = `<div class="t" style="left:${left}px;top:${top}px;opacity:${op};transform:translateY(${y}px);filter:blur(${bl}px)">`;
+  if (x.lab) h += `<div class="lab" style="font-size:${19*U}px;margin-bottom:${22*U}px;letter-spacing:${.32 + ls}em">${x.lab}</div>`;
+  h += `<div class="hd" style="font-size:${(VERT ? 74 : 78)}px;letter-spacing:${-.015 + ls}em">${x.hd}</div>`;
+  if (x.sub) h += `<div class="sub" style="font-size:${24*U}px;margin-top:${22*U}px">${x.sub}</div>`;
+  return h + `</div>`;
+}
+function callHTML(c, t) {
+  if (t < c.a || t > c.b) return ['', ''];
+  const pin = seg(t, c.a, c.a + .8, 'oexp'), pout = seg(t, c.b - .5, c.b, 'icub'), op = pin * (1 - pout);
+  const [ax, ay] = project(worldOf(c.o(), c.p)); const s = VERT ? .5 : 1;
+  const lx = ax + c.dx * s, ly = ay + c.dy * s, k = pin;
+  const ex = ax + (lx - ax) * k, ey = ay + (ly - ay) * k;
+  const right = c.dx > 0;
+  const line = `<circle cx="${ax}" cy="${ay}" r="${5*op}" fill="#F6EFE6" opacity="${op}"/><circle cx="${ax}" cy="${ay}" r="${14*op}" fill="none" stroke="#F6EFE6" stroke-opacity="${.35*op}"/>
+    <path d="M${ax},${ay} L${ex},${ey} L${ex + (right ? 40 : -40) * k},${ey}" stroke="#F6EFE6" stroke-opacity="${.7*op}" stroke-width="1.5" fill="none"/>`;
+  const tx = right ? `left:${Math.min(lx + 52, W - (VERT ? 330 : 420))}px` : `left:${Math.max(lx - 52, VERT ? 330 : 420)}px;transform:translateX(-100%)`;
+  return [line, `<div class="call" style="${tx};top:${ly - 22}px;opacity:${op};filter:blur(${6*(1-pin)}px)"><b style="font-size:${30*U}px">${c.t}</b><i style="font-size:${15*U}px">${c.s}</i></div>`];
+}
+// end card
+function endHTML(t) {
+  if (t < 35.2) return '';
+  const p1 = seg(t, 35.2, 36.4, 'oexp'), p2 = seg(t, 35.9, 37.1, 'oexp'), p3 = seg(t, 36.6, 37.8, 'oexp');
+  const ed = (p, d = 20) => `opacity:${p};transform:translateY(${d*(1-p)}px);filter:blur(${10*(1-p)}px)`;
+  const left = LX, top = VERT ? 1380 : 400;
+  return `<div style="position:absolute;inset:0;background:linear-gradient(${VERT ? '0deg' : '90deg'},rgba(12,8,5,.82) 0%,rgba(12,8,5,.35) 48%,rgba(12,8,5,0) 70%);opacity:${p1}"></div>
+   <div class="t" style="left:${left}px;top:${top}px">
+    <div class="lab" style="font-size:${19*U}px;${ed(p1)}">Seven Seas Vans</div>
+    <div class="hd" style="font-size:${VERT ? 92 : 96}px;margin-top:${24*U}px;${ed(p2)}">Drop Leaf<br>Wall Table</div>
+    <div class="sub" style="font-size:${24*U}px;margin-top:${30*U}px;${ed(p3)}">Stows flat. Deploys in one move.</div>
+    <div style="margin-top:${54*U}px;display:flex;align-items:center;gap:22px;${ed(p3)}">
+      <img src="img/logo.png" style="width:${92*U}px;height:${92*U}px;border-radius:50%;object-fit:cover;filter:saturate(.9)">
+      <div class="lab" style="font-size:${15*U}px;line-height:1.9">Designed &amp; built<br>in San Diego, California</div>
+    </div></div>`;
+}
+// light leaks on the cuts
+const LEAKS = [3.85, 15.85, 26.85, 34.9];
+function leakCSS(t) {
+  let css = '';
+  for (const l of LEAKS) { const p = (t - l) / 1.5; if (p < 0 || p > 1) continue;
+    const a = Math.sin(p * Math.PI) * .55, x = -20 + 140 * E.io(p);
+    css += `radial-gradient(ellipse 55% 75% at ${x}% 40%, rgba(255,150,60,${a}) 0%, rgba(255,110,40,${a*.4}) 40%, rgba(0,0,0,0) 70%),`; }
+  return css ? css.slice(0, -1) : 'none';
+}
+// film grain, seeded per frame
+const gctx = grainC.getContext('2d'), gimg = gctx.createImageData(480, 270);
+function grainFrame(f) { let s = (f * 7919 + 13) % 2147483647 || 1;
+  for (let i = 0; i < gimg.data.length; i += 4) { s = (s * 16807) % 2147483647; const v = (s / 2147483647) * 255; gimg.data[i] = gimg.data[i+1] = gimg.data[i+2] = v; gimg.data[i+3] = 255; }
+  gctx.putImageData(gimg, 0, 0); }
+
+function renderFrame(f) {
+  const t = f / FPS;
+  let html = '', glVisible = false, glAlpha = 0, lines = '';
+  for (const s of SHOTS) {
+    if (t < s.a || t >= s.b) continue;
+    const al = shotAlpha(s, t);
+    if (s.k === '3d') { SH3D[s.f](t - s.a); glVisible = true; glAlpha = al; }
+    else html += photoHTML(s, t, al);
+  }
+  canvas.style.visibility = glVisible ? 'visible' : 'hidden';
+  if (glVisible) { scene.updateMatrixWorld(true); composer.render(); canvas.style.opacity = 1; }
+  // photo shots fade in OVER the 3D; 3D fading in over a photo is done by fading the photo out
+  for (const s of SHOTS) if (s.k === '3d' && t >= s.a && t < s.a + s.fin && s.a > 0) {
+    const prev = SHOTS[SHOTS.indexOf(s) - 1]; const al = 1 - seg(t, s.a, s.a + s.fin, 'io');
+    html = photoHTML(prev, t, al); }
+  shotsEl.innerHTML = html;
+  let tx = ''; for (const x of TX) tx += textHTML(x, t);
+  for (const c of CALLS) { const [l, h] = callHTML(c, t); lines += l; tx += h; }
+  tx += endHTML(t);
+  textsEl.innerHTML = tx; linesEl.innerHTML = lines;
+  leakEl.style.background = leakCSS(t);
+  blackEl.style.opacity = Math.max(1 - seg(t, 0, 1.4, 'isine'), seg(t, DUR - 1.3, DUR - .1, 'io'));
+  grainFrame(f);
+}
+
+const imgs = ['folded_flat', 'open_bedside', 'folded_bed'];
+window.__ready = Promise.all([document.fonts.load('300 40px IT'), document.fonts.load('500 40px IT'), document.fonts.load('400 40px IT'),
+  ...imgs.map(n => new Promise(r => { const i = new Image(); i.onload = r; i.src = img(n); })),
+  new Promise(r => { const i = new Image(); i.onload = r; i.src = 'img/logo.png'; })]).then(() => true);
+window.__frames = Math.round(DUR * FPS); window.__size = [W, H];
+window.renderFrame = f => { renderFrame(f); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); };
+</script>
+</body></html>
